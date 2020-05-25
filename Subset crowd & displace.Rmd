@@ -145,6 +145,8 @@ per0<-select(period0, date, period, days)
 per0.dyad.aggDC<-right_join(dyad.aggDCXday.cst, per0, by="date")
 head(per0.dyad.aggDC)
 ```
+
+## export subsetted file
 ```{r}
 # export total crowds and displacement per dyad for nonsocial perturbation period
 #machine <- "C:/Users/Liz/Dropbox/Cincy JOB/FL Fieldwork/" #Liz laptop path
