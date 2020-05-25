@@ -1,0 +1,197 @@
+---
+title: "Subset crowd & displace"
+author: "Annemarie"
+date: "23/05/2020"
+output: html_document
+---
+
+Load packages
+```{r}
+library(dplyr)
+library(tidyr)
+library(reshape2)
+```
+
+
+## Helper functions & data
+```{r}
+
+#make matrix function (from dataframe, 1st col with row names)
+matrix.please<-function(x) {
+  m<-as.matrix(x[,-1])
+  rownames(m)<-x[,1]
+  m
+}
+
+#list of all valid color combinations
+bird.list <- c("BBB","BBG","BBR","BGB","BGG","BRB","BRR","GBB","GBG","GGB","GGG","GGR","GRG","GRR","RBB","RBG","RBR","RGG","RGR","RRG","RRR")
+length(bird.list)
+
+# list of all possible dyads
+dyad.list <- expand.grid(bird.list, bird.list) #head(dyad.list)
+names(dyad.list) <- c("actor", "subject")
+dyad.list <- subset(dyad.list, actor!=subject)
+dyad.list$dyadID <- paste(dyad.list$actor, dyad.list$subject, sep="-")
+
+# list of days with observations
+obsday.list <- as.character(unique(allbehavedata$date)) #only days with observations
+obsday.list.wday <- as.data.frame(obsday.list)
+colnames(obsday.list.wday) <- "date"
+obsday.list.wday$nday <- seq(1:length(obsday.list.wday$date))
+
+```
+
+
+## import data
+
+```{r}
+# path
+#outer.loc <- "C:/Users/Liz/Dropbox/Cincy JOB/FL Fieldwork/" #Liz laptop path
+outer.loc<- "C:/Users/avdma/Dropbox/" # Annemarie laptop
+data.loc <- "2020 field season/DATA/"
+
+# all interactions 
+allbehavedata <- read.csv(file = paste0(outer.loc, data.loc,"2020_interactions_all.csv")) %>%
+  select(-X)
+
+# period file
+attfolder <- "2020 field season/ANALYSIS/"
+obs.day.KEY <- read.csv(paste0(outer.loc, attfolder, "obs.day.KEY.csv"))
+
+```
+
+
+## filter displacement & crowd data from all data
+```{r}
+aggDC <- subset(allbehavedata, behavior=="displace" | behavior=="crowd")
+str(aggDC)
+length(aggDC$sessionKEY)
+```
+
+
+## Remove duplicates 
+pull out distinct actor & target & date & time2min & behavior type 
+(excludes duplicate obs from different blinds, also excludes same dyad, repeat event which may be "real" rather than duplicate obs)
+```{r}
+aggDC.tr <- subset(aggDC, select=c(sessionKEY, start_timestamp, date, time, actor, subject, 
+                                   behavior))
+head(aggDC.tr)
+
+# keep only observations where the actor is in the list of bird IDs
+aggDC.goodID <- subset(aggDC.tr, actor %in% bird.list)
+
+# keep only observations where the actor (found above) and the subject are both in the list of bird IDs
+aggDC.goodID <- subset(aggDC.goodID, subject %in% bird.list)
+
+```
+
+```{r}
+#finds n disps and crowds by sessionKEY, date, time, actor, subject, behavior
+dyad.agg.key <- aggDC.goodID %>% 
+  dplyr::group_by(sessionKEY, date, time,actor, subject, behavior) %>% 
+  tally() # counts behaviors that were observed within the same minute
+
+#finds max agg per actor by date, time, and behavior type. Return just that summary
+dyad.agg.maxkey<- dyad.agg.key %>% 
+  group_by(actor, subject, date, time, behavior) %>%
+  slice(which.max(n)) %>% # n.aggXaggXkey if summarise, n if tally
+  ungroup()
+head(dyad.agg.maxkey)
+```
+
+Here we are interested in total number of interactions instead of chronological order of interactions. If you require order of interactions, then next steps will be different from the following setup as you will have to add the behaviors with n>1 as separate rows. 
+
+## summarize displacements & crowds
+
+```{r}
+#finds n disps per actor by date for summarized/trimmed data
+dyad.aggDCXday <- dyad.agg.maxkey %>% 
+  group_by(actor, subject, date, behavior) %>% 
+  summarise(n.aggXday=sum(n))
+head(dyad.aggDCXday)
+```
+
+## cast number of aggressions per day by behavior type
+
+```{r}
+dyad.aggDCXday.cst <- dcast(dyad.aggDCXday, actor+subject+date~behavior, value.var="n.aggXday")
+dyad.aggDCXday.cst[is.na(dyad.aggDCXday.cst)] <- 0
+dyad.aggDCXday.cst<- mutate(dyad.aggDCXday.cst, total.DC=displace + crowd)
+
+head(dyad.aggDCXday.cst)
+
+```
+
+## compare total number of each type of aggression per dyad per period (sum across days)
+Pull out only the "nonsocial" period data (Mar 22-29) first 3, last 3 days and all 6
+```{r}
+# first add days
+head(obs.day.KEY)
+period0 <- subset(obs.day.KEY, period=="per0") %>%
+  mutate(days="") 
+period0$nday <- seq(1:length(period0$date))
+
+# still don't know how to do this more efficiently
+period0$days[period0$nday==1]<-"first"
+period0$days[period0$nday==2]<-"first"
+period0$days[period0$nday==3]<-"first"
+period0$days[period0$nday==4]<-"last"
+period0$days[period0$nday==5]<-"last"
+period0$days[period0$nday==6]<-"last"
+
+per0<-select(period0, date, period, days)
+
+# add "period" and "days" to dataframe, so we can summarize all at once
+per0.dyad.aggDC<-right_join(dyad.aggDCXday.cst, per0, by="date")
+head(per0.dyad.aggDC)
+```
+```{r}
+# export total crowds and displacement per dyad for nonsocial perturbation period
+#machine <- "C:/Users/Liz/Dropbox/Cincy JOB/FL Fieldwork/" #Liz laptop path
+machine <- "C:/Users/avdma/Dropbox/" # Annemarie laptop path
+path.out <- "2020 field season/ANALYSIS/"
+
+write.csv(per0.dyad.aggDC, paste0(machine, path.out,"per0.dyad.aggDC.csv"))
+
+```
+
+
+
+
+## summarize total number of displacements and crowds per first/last/all days
+```{r}
+sum.per0.aggDC <- per0.dyad.aggDC %>%
+  group_by(period) %>%
+  summarise(ncrowd=sum(crowd), ndisplace=sum(displace))
+
+sum.per0days.aggDC <- per0.dyad.aggDC %>%
+  group_by(period, days) %>%
+  summarise(ncrowd=sum(crowd), ndisplace=sum(displace))
+
+summary.per0.aggDC<-bind_rows(sum.per0.aggDC,sum.per0days.aggDC )
+summary.per0.aggDC
+```
+
+
+
+## summarize over the whole field season
+```{r}
+#finds n agg per actor for summarized/trimmed data
+dyad.aggDC <- dyad.agg.maxkey %>% 
+  group_by(actor, subject, behavior) %>% 
+  summarise(total.agg=sum(n.aggXaggXkey))
+head(dyad.aggDC)
+
+#cast by aggressive behavior
+
+dyad.agg.cst <- dcast(dyad.aggDC, actor+subject~behavior, value.var="total.agg")
+dyad.agg.cst[is.na(dyad.agg.cst)] <- 0
+
+head(dyad.agg.cst)
+dyad.agg.cst$total.DC <- dyad.agg.cst$displace + dyad.agg.cst$crowd
+
+#add column with dyad ID
+#dyad.agg.cst$dyad <- paste(dyad.agg.cst$actor, dyad.agg.cst$subject, sep="-")
+#rownames(dyad.agg.cst) <- dyad.agg.cst$dyad
+#head(dyad.agg.cst)
+```
