@@ -4,7 +4,6 @@ author: "Annemarie"
 date: "23/05/2020"
 output: html_document
 ---
-dkfd
 
 Load packages
 ```{r}
@@ -123,8 +122,22 @@ head(dyad.aggDCXday.cst)
 
 ```
 
-## compare total number of each type of aggression per dyad per period (sum across days)
-Pull out only the "nonsocial" period data (Mar 22-29) first 3, last 3 days and all 6
+## filter periods
+first, only 3 days of fitness period for exploratory analysis
+```{r}
+# select fitness period
+head(obs.day.KEY)
+fitness <- subset(obs.day.KEY, period=="pre") %>%
+  select(date, period)
+
+# combine 
+fitness.dyad.aggDC<-right_join(dyad.aggDCXday.cst, fitness, by="date")
+str(fitness.dyad.aggDC)
+```
+
+
+
+Now, pull out only the "nonsocial" period data (Mar 22-29) first 3, last 3 days and all 6
 ```{r}
 # first add days
 head(obs.day.KEY)
@@ -142,18 +155,21 @@ period0$days[period0$nday==6]<-"last"
 
 per0<-select(period0, date, period, days)
 
-# add "period" and "days" to dataframe, so we can summarize all at once
+# add "period" and "days" to dataframe, so we can summarize all at once 
+# for summary see "Basic group summary" script
 per0.dyad.aggDC<-right_join(dyad.aggDCXday.cst, per0, by="date")
 head(per0.dyad.aggDC)
 ```
 
-## export subsetted file
+
+## export subsetted files
 ```{r}
 # export total crowds and displacement per dyad for nonsocial perturbation period
 #machine <- "C:/Users/Liz/Dropbox/Cincy JOB/FL Fieldwork/" #Liz laptop path
 machine <- "C:/Users/avdma/Dropbox/" # Annemarie laptop path
 path.out <- "2020 field season/ANALYSIS/"
 
+write.csv(fitness.dyad.aggDC, paste0(machine, path.out,"fitness.dyad.aggDC.csv"))
 write.csv(per0.dyad.aggDC, paste0(machine, path.out,"per0.dyad.aggDC.csv"))
 
 ```
