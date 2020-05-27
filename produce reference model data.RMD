@@ -1,0 +1,192 @@
+---
+title: "Pool vs separate displacements & crowds: GENERATE REFERENCE DATA"
+author: "Liz Hobson"
+date: "May 9, 2020"
+output: html_document
+---
+
+#Load packages and helper code
+```{r}
+library(dplyr)
+library(reshape2)
+
+```
+
+
+#Import data & process
+
+```{r}
+# load data, rename first column
+head(per0_dyad_aggDC)
+colnames(per0_dyad_aggDC)[1] <- "rowID"
+
+# separate the EXPLORE data from the ANALYZE data
+
+agg.data <- subset(per0_dyad_aggDC, days=="first") #this is the EXPLORE data for setting up the code and figuring out all the analyses
+
+#agg.data <- subset(per0_dyad_aggDC, days=="last") #this is the ANALYZE data for the actual analyses in the final paper
+
+```
+
+#Check
+```{r}
+unique(agg.data$actor)
+unique(agg.data$subject)
+unique(agg.data$date)
+
+sum(agg.data$crowd)
+sum(agg.data$displace)
+sum(agg.data$total.DC)
+
+```
+
+## Helper functions & data
+```{r}
+
+#make matrix function (from dataframe, 1st col with row names)
+matrix.please<-function(x) {
+  m<-as.matrix(x[,-1])
+  rownames(m)<-x[,1]
+  m
+}
+
+#list of all valid color combinations
+bird.list <- c("BBB","BBG","BBR","BGB","BGG","BRB","BRR","GBB","GBG","GGB","GGG","GGR","GRG","GRR","RBB","RBG","RBR","RGG","RGR","RRG","RRR")
+length(bird.list)
+
+dyad.list <- expand.grid(bird.list, bird.list) #head(dyad.list)
+names(dyad.list) <- c("actor", "subject")
+dyad.list <- subset(dyad.list, actor!=subject)
+dyad.list$dyadID <- paste(dyad.list$actor, dyad.list$subject, sep="-")
+
+
+```
+
+
+# Subset data 
+TEST scripts / analyses on first day of per0 data then  run full analyses on last 3 days of per0 data
+
+
+```{r}
+# TO TEST: use day 1 of per0 date=="2020-03-22"
+aggdata.subd <- subset(agg.data, date=="2020-03-22")
+
+# FINAL ANALYSIS: change to days=="last" to get last 3 days of per0
+#aggdata.subd <- subset(agg.data, days=="last")
+
+#check days in subsetted data
+unique(aggdata.subd$date) 
+
+```
+
+# Summarize data: find total events per dyad (pool across days)
+
+```{r}
+#aggdata.subd.sumXdyad <- aggdata.subd
+
+#finds n event per dyad
+aggdata.subd.sumXdyad <- aggdata.subd.sumXdyad %>% group_by(actor, subject) %>% summarise(observed.crowd=sum(crowd),
+          observed.displace=sum(displace),
+          observed.totalCD=sum(total.DC))
+          
+head(aggdata.subd.sumXdyad)
+```
+
+
+## Summarize differences between displacements and crowds
+```{r}
+#total number real events
+n.crd <- sum(aggdata.subd.sumXdyad$observed.crowd)
+n.dsp <- sum(aggdata.subd.sumXdyad$observed.displace)
+
+#proportion total events that are displacements
+n.dsp/(n.dsp+n.crd)
+
+#dyads with at least one crowd
+dyads.crd <- subset(aggdata.subd.sumXdyad, observed.crowd>0)
+
+#dyads with at least one displacement
+dyads.dsp <- subset(aggdata.subd.sumXdyad, observed.displace>0)
+
+length(dyads.dsp$actor)/420 #total density of aggression network (0=no individuals interact, 1=all individuals interact, network perfectly connected)
+```
+
+
+
+## Test real patterns with randomized reference model
+
+Change: Randomly re-allocate aggression to number of displacements and number of crowds by dyad. 
+Preserve: Keep total events (n disp + n crowd) by dyad the same
+
+I used some code from here (https://stackoverflow.com/questions/12031049/generate-data-where-cell-counts-are-random-but-row-sums-always-the-same) for the first run, but it was not behaving well so I switched to this version with a loop
+
+```{r}
+head(aggdata.subd.sumXdyad)
+
+replicates <- 100
+#observed.data <- aggdata.subd.sumXdyad 
+
+#run=2
+
+#make empty dataframe to write loop results into
+ref.model <- data.frame(actor=character(),
+                       subject=character(),
+                       observed.crowd=numeric(),
+                       observed.displace=numeric(),
+                       observed.totalCD=numeric(),
+                       random.displace=numeric(),
+                       random.crowd=numeric())
+
+
+for (run in 1:replicates) {
+  r.seed <- run
+  set.seed(r.seed)
+  ref.data <- aggdata.subd.sumXdyad %<>%
+                rowwise() %>%
+                dplyr::mutate(random.displace = sample(0:observed.totalCD, 1))
+  
+  ref.data$random.crowd <- ref.data$observed.totalCD-ref.data$random.displace
+  ref.data$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")), length(aggdata.subd.sumXdyad$actor)) #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+    
+  ref.data <- as.data.frame(ref.data)
+  ref.model <- rbind.data.frame(ref.model, ref.data)
+}
+
+```
+
+
+## Check the reference model output
+For example, runs should have different random.disp and random.crowd from observed data, runs should be different from each other, run should contain new divisions of displacement vs crowd events
+```{r}
+#check that the randomized interactions vary from the observed interactions
+disp.compare <- subset(ref.model, random.displace!=observed.displace)
+length(disp.compare$actor)
+
+crowd.compare <- subset(ref.model, random.crowd!=observed.crowd)
+length(crowd.compare$actor)
+
+#check that runs are different from each other
+head(subset(ref.model, runID=="run001"))
+head(subset(ref.model, runID=="run002"))
+head(subset(ref.model, runID=="run003"))
+head(subset(ref.model, runID=="run011"))
+
+#check that all runs ran as expected
+unique(ref.model$runID)
+length(unique(ref.model$runID))
+
+```
+
+## SAVE RUN OUTPUT FOR FINAL ANALYSIS
+Save all.runs when we run the final analysis on the last 3 days in per0. Unfortunately I haven't figured out how to set the seed for each run in lapply so we need to save the runs and put them on github in case we want to make figures later or re-run any analyses (or someone else wants to run analyses with the same reference data)
+
+** Note: change the file path to save to another location
+
+```{r}
+#WRITE DATA 
+dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behaviors/poolVSseparate/"
+#dfile.loc <- YOUR LOCATION HERE
+
+#write.csv(ref.model, file = paste(dfile.loc, "EXPLORE-refmodeldata.csv", sep=""))	
+```
+
