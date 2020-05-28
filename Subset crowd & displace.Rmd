@@ -111,16 +111,26 @@ dyad.aggDCXday <- dyad.agg.maxkey %>%
 head(dyad.aggDCXday)
 ```
 
-## cast number of aggressions per day by behavior type
-
+## from long to wide format
+cast number of aggressions per day by behavior type
 ```{r}
 dyad.aggDCXday.cst <- dcast(dyad.aggDCXday, actor+subject+date~behavior, value.var="n.aggXday")
+
 dyad.aggDCXday.cst[is.na(dyad.aggDCXday.cst)] <- 0
 dyad.aggDCXday.cst<- mutate(dyad.aggDCXday.cst, total.DC=displace + crowd)
 
 head(dyad.aggDCXday.cst)
 
 ```
+Another way using tidyverse function pivot_wider
+```{r}
+dyad.aggDCXday.wide <- dyad.aggDCXday %>% pivot_wider(names_from = "behavior", 
+  values_from = "n.aggXday",
+  values_fill = list(n.aggXday = 0)) %>%
+  mutate(total.DC=displace + crowd)
+head(dyad.aggDCXday.wide)
+```
+
 
 ## filter periods
 first, only 3 days of fitness period for exploratory analysis
@@ -145,13 +155,8 @@ period0 <- subset(obs.day.KEY, period=="per0") %>%
   mutate(days="") 
 period0$nday <- seq(1:length(period0$date))
 
-# still don't know how to do this more efficiently
-period0$days[period0$nday==1]<-"first"
-period0$days[period0$nday==2]<-"first"
-period0$days[period0$nday==3]<-"first"
-period0$days[period0$nday==4]<-"last"
-period0$days[period0$nday==5]<-"last"
-period0$days[period0$nday==6]<-"last"
+period0$days[period0$nday %in% 1:3]<-"first"
+period0$days[period0$nday %in% 4:6]<-"last"
 
 per0<-select(period0, date, period, days)
 
@@ -169,8 +174,8 @@ head(per0.dyad.aggDC)
 machine <- "C:/Users/avdma/Dropbox/" # Annemarie laptop path
 path.out <- "2020 field season/ANALYSIS/"
 
-write.csv(fitness.dyad.aggDC, paste0(machine, path.out,"fitness.dyad.aggDC.csv"))
-write.csv(per0.dyad.aggDC, paste0(machine, path.out,"per0.dyad.aggDC.csv"))
+write.csv(fitness.dyad.aggDC, paste0(machine, path.out,"EXPLORE.perpre.aggDC.csv"))
+write.csv(per0.dyad.aggDC, paste0(machine, path.out,"ANALYZE.per0.aggDC.csv"))
 
 ```
 
