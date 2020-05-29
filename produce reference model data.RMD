@@ -44,19 +44,9 @@ sum(observed$total.DC)
 
 ```
 
+
 # Summarize data: find total events per dyad (pool across days)
-
 ```{r}
-aggdataXdyad <- observed
-aggdata.sumXdyad <- aggdataXdyad  %>% 
-  group_by(actor, subject) %>% 
-  summarise(observed.crowd=sum(crowd),
-          observed.displace=sum(displace),
-          observed.totalCD=sum(total.DC))
-head(aggdata.sumXdyad)
-
-setdiff(aggdata.sumXdyad,observedXdyad) # check old code from this script (above) with code from summarize ref script (below) --> is the same, I suggest to keep bottom one. 
-
 observedXdyad <- observed
 observedXdyad <- observedXdyad %>% 
                   dplyr::group_by(actor, subject) %>% 
@@ -69,7 +59,6 @@ observedXdyad$subject <- as.character(observedXdyad$subject)
 ```
 
 
-
 ## Produce reference model
 Test real patterns with randomized reference model: Using this reference model, we test whether randomizing the number of interactions across two behavior types results in indistinguishable structural patterns in a reference model compared to the observed data.
 
@@ -77,7 +66,6 @@ Change: Randomly re-allocate aggression to number of displacements and number of
 Preserve: Keep total events (n disp + n crowd) by dyad the same
 
 ```{r}
-head(aggdata.sumXdyad) # name from this script
 head(observedXdyad) # name from summarize ref model
 
 replicates <- 100
