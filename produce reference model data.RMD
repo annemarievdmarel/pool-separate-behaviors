@@ -9,24 +9,38 @@ output: html_document
 ```{r}
 library(dplyr)
 library(reshape2)
+library(stringr)
 
 ```
 
 
 #Import data & process
+```{r}
+# import observed data
+EXPLORE_perpre_aggCD <- read.csv(file="EXPLORE-perpre-aggCD.csv")
+observed <- EXPLORE_perpre_aggCD
+head(observed)
+
+
+#agg.data <- subset(ANALYZE_per0_aggDC, days=="last") #this is the ANALYZE data for the actual analyses in the final paper
+
+```
+
+
 
 ```{r}
 # load data, rename first column
-head(per0_dyad_aggDC)
-colnames(per0_dyad_aggDC)[1] <- "rowID"
+head(per0.dyad.aggDC)  # changed _ to . (we have to update this with the final name of our dataset)
+colnames(per0.dyad.aggDC)[1] <- "rowID" # only necessary if the first column is an X
 
 # separate the EXPLORE data from the ANALYZE data
 
-agg.data <- subset(per0_dyad_aggDC, days=="first") #this is the EXPLORE data for setting up the code and figuring out all the analyses
+agg.data <- subset(per0.dyad.aggDC, days=="first") #this is the EXPLORE data for setting up the code and figuring out all the analyses
 
-#agg.data <- subset(per0_dyad_aggDC, days=="last") #this is the ANALYZE data for the actual analyses in the final paper
+#agg.data <- subset(ANALYZE_per0_aggDC, days=="last") #this is the ANALYZE data for the actual analyses in the final paper
 
 ```
+IF we want to publish our dataset, I think we should upload the subsetted last 3 days of period0
 
 #Check
 ```{r}
@@ -80,12 +94,14 @@ unique(aggdata.subd$date)
 ```
 
 # Summarize data: find total events per dyad (pool across days)
-
+for test data not really necessary because we are only looking at 1 day.
 ```{r}
-#aggdata.subd.sumXdyad <- aggdata.subd
+aggdata.subd.sumXdyad <- aggdata.subd
 
 #finds n event per dyad
-aggdata.subd.sumXdyad <- aggdata.subd.sumXdyad %>% group_by(actor, subject) %>% summarise(observed.crowd=sum(crowd),
+aggdata.subd.sumXdyad <- aggdata.subd.sumXdyad %>% 
+  group_by(actor, subject) %>% 
+  summarise(observed.crowd=sum(crowd),
           observed.displace=sum(displace),
           observed.totalCD=sum(total.DC))
           
@@ -94,6 +110,7 @@ head(aggdata.subd.sumXdyad)
 
 
 ## Summarize differences between displacements and crowds
+
 ```{r}
 #total number real events
 n.crd <- sum(aggdata.subd.sumXdyad$observed.crowd)
@@ -109,6 +126,7 @@ dyads.crd <- subset(aggdata.subd.sumXdyad, observed.crowd>0)
 dyads.dsp <- subset(aggdata.subd.sumXdyad, observed.displace>0)
 
 length(dyads.dsp$actor)/420 #total density of aggression network (0=no individuals interact, 1=all individuals interact, network perfectly connected)
+length(dyads.crd$actor)/420
 ```
 
 
@@ -126,7 +144,7 @@ head(aggdata.subd.sumXdyad)
 replicates <- 100
 #observed.data <- aggdata.subd.sumXdyad 
 
-#run=2
+run=2
 
 #make empty dataframe to write loop results into
 ref.model <- data.frame(actor=character(),
@@ -143,17 +161,17 @@ for (run in 1:replicates) {
   set.seed(r.seed)
   ref.data <- aggdata.subd.sumXdyad %<>%
                 rowwise() %>%
-                dplyr::mutate(random.displace = sample(0:observed.totalCD, 1))
+                dplyr::mutate(random.displace = sample(0:observed.totalCD, 1),
+                              random.crowd = observed.totalCD-random.displace)
   
-  ref.data$random.crowd <- ref.data$observed.totalCD-ref.data$random.displace
-  ref.data$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")), length(aggdata.subd.sumXdyad$actor)) #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+  ref.data$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(aggdata.subd.sumXdyad$actor)) #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
     
   ref.data <- as.data.frame(ref.data)
   ref.model <- rbind.data.frame(ref.model, ref.data)
 }
 
 ```
-
+I had to load stringr to get runID
 
 ## Check the reference model output
 For example, runs should have different random.disp and random.crowd from observed data, runs should be different from each other, run should contain new divisions of displacement vs crowd events
@@ -185,7 +203,8 @@ Save all.runs when we run the final analysis on the last 3 days in per0. Unfortu
 ```{r}
 #WRITE DATA 
 dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behaviors/poolVSseparate/"
-#dfile.loc <- YOUR LOCATION HERE
+#dfile.loc <- "C:/Users/avdma/OneDrive - University of Cincinnati/Documents/Postdoc_University of Cincinatti/Monk parakeet/"
+#dfile.loc <- YOUR LOCATION
 
 #write.csv(ref.model, file = paste(dfile.loc, "EXPLORE-refmodeldata.csv", sep=""))	
 ```
