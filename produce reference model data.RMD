@@ -9,11 +9,16 @@ output: html_document
 ```{r}
 library(dplyr)
 library(reshape2)
+<<<<<<< Updated upstream
 library(stringr)
+=======
+
+>>>>>>> Stashed changes
 ```
 
 
 #Import data & process
+<<<<<<< Updated upstream
 ```{r}
 # import observed data
 
@@ -41,11 +46,62 @@ unique(observed$date)
 sum(observed$crowd)
 sum(observed$displace)
 sum(observed$total.DC)
+=======
+There are two options here, EXPLORE and ANALYZE. We'll use the EXPLORE data to get the code written, make sure the analyses are all working, and figure out the format of the figures. Once that's all working, we'll switch to the ANALYZE dataset to generate the final analyses and figues.
+
+```{r}
+#load the data from the project
+EXPLORE_perpre_aggCD <- read.csv(file="EXPLORE-perpre-aggCD.csv")
+ANALYZE_perpre_aggCD <- read.csv(file="ANALYZE-perpre-aggCD.csv")
+
+# separate the EXPLORE data from the ANALYZE data
+head(EXPLORE_perpre_aggCD) #this is the EXPLORE data for setting up the code and figuring out all the analyses 
+
+head(ANALYZE_perpre_aggCD) #this is the ANALYZE data for the actual analyses in the final paper
+
+# set which data you want to use to run the reference model below
+agg.data <- EXPLORE_perpre_aggCD
+
+```
+
+#Check
+```{r}
+unique(agg.data$actor)
+unique(agg.data$subject)
+unique(agg.data$date)
+
+sum(agg.data$crowd)
+sum(agg.data$displace)
+sum(agg.data$total.DC)
+
+```
+
+## Helper functions & data
+```{r}
+
+#make matrix function (from dataframe, 1st col with row names)
+matrix.please<-function(x) {
+  m<-as.matrix(x[,-1])
+  rownames(m)<-x[,1]
+  m
+}
+
+#list of all valid color combinations
+bird.list <- c("BBB","BBG","BBR","BGB","BGG","BRB","BRR","GBB","GBG","GGB","GGG","GGR","GRG","GRR","RBB","RBG","RBR","RGG","RGR","RRG","RRR")
+length(bird.list)
+
+dyad.list <- expand.grid(bird.list, bird.list) #head(dyad.list)
+names(dyad.list) <- c("actor", "subject")
+dyad.list <- subset(dyad.list, actor!=subject)
+dyad.list$dyadID <- paste(dyad.list$actor, dyad.list$subject, sep="-")
+
+>>>>>>> Stashed changes
 
 ```
 
 
 # Summarize data: find total events per dyad (pool across days)
+<<<<<<< Updated upstream
 ```{r}
 observedXdyad <- observed
 observedXdyad <- observedXdyad %>% 
@@ -61,17 +117,64 @@ observedXdyad$subject <- as.character(observedXdyad$subject)
 
 ## Produce reference model
 Test real patterns with randomized reference model: Using this reference model, we test whether randomizing the number of interactions across two behavior types results in indistinguishable structural patterns in a reference model compared to the observed data.
+=======
+
+```{r}
+aggdata.sumXdyad <- agg.data
+
+#finds n event per dyad
+aggdata.sumXdyad <- aggdata.sumXdyad %>% group_by(actor, subject) %>% summarise(observed.crowd=sum(crowd),
+          observed.displace=sum(displace),
+          observed.totalCD=sum(total.DC))
+          
+head(aggdata.sumXdyad)
+```
+
+
+## Summarize differences between displacements and crowds
+```{r}
+#total number real events
+n.crd <- sum(aggdata.sumXdyad$observed.crowd)
+n.dsp <- sum(aggdata.sumXdyad$observed.displace)
+
+#proportion total events that are displacements
+n.dsp/(n.dsp+n.crd)
+
+#dyads with at least one crowd
+dyads.crd <- subset(aggdata.sumXdyad, observed.crowd>0)
+
+#dyads with at least one displacement
+dyads.dsp <- subset(aggdata.sumXdyad, observed.displace>0)
+
+length(dyads.dsp$actor)/420 #total density of aggression network (0=no individuals interact, 1=all individuals interact, network perfectly connected)
+```
+
+
+
+## Test real patterns with randomized reference model
+>>>>>>> Stashed changes
 
 Change: Randomly re-allocate aggression to number of displacements and number of crowds by dyad. 
 Preserve: Keep total events (n disp + n crowd) by dyad the same
 
+<<<<<<< Updated upstream
 ```{r}
 head(observedXdyad) # name from summarize ref model
+=======
+I used some code from here (https://stackoverflow.com/questions/12031049/generate-data-where-cell-counts-are-random-but-row-sums-always-the-same) for the first run, but it was not behaving well so I switched to this version with a loop
+
+```{r}
+head(aggdata.sumXdyad)
+>>>>>>> Stashed changes
 
 replicates <- 100
 #observed.data <- aggdata.subd.sumXdyad 
 
+<<<<<<< Updated upstream
 run=2
+=======
+#run=2
+>>>>>>> Stashed changes
 
 #make empty dataframe to write loop results into
 ref.model <- data.frame(actor=character(),
@@ -79,8 +182,13 @@ ref.model <- data.frame(actor=character(),
                        observed.crowd=numeric(),
                        observed.displace=numeric(),
                        observed.totalCD=numeric(),
+<<<<<<< Updated upstream
                        random.crowd=numeric(),
                        random.displace=numeric())
+=======
+                       random.displace=numeric(),
+                       random.crowd=numeric())
+>>>>>>> Stashed changes
 
 
 for (run in 1:replicates) {
@@ -88,10 +196,17 @@ for (run in 1:replicates) {
   set.seed(r.seed)
   ref.data <- aggdata.sumXdyad %<>%
                 rowwise() %>%
+<<<<<<< Updated upstream
                 dplyr::mutate(random.displace = sample(0:observed.totalCD, 1),
                               random.crowd = observed.totalCD-random.displace)
   
   ref.data$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(aggdata.sumXdyad$actor)) #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+=======
+                dplyr::mutate(random.displace = sample(0:observed.totalCD, 1))
+  
+  ref.data$random.crowd <- ref.data$observed.totalCD-ref.data$random.displace
+  ref.data$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")), length(aggdata.subd.sumXdyad$actor)) #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+>>>>>>> Stashed changes
     
   ref.data <- as.data.frame(ref.data)
   ref.model <- rbind.data.frame(ref.model, ref.data)
@@ -104,8 +219,13 @@ for (run in 1:replicates) {
 For example, runs should have different random.disp and random.crowd from observed data, runs should be different from each other, run should contain new divisions of displacement vs crowd events
 ```{r}
 #check that the randomized interactions vary from the observed interactions
+<<<<<<< Updated upstream
 ref.model$random.displace == ref.model$observed.displace
 ref.model$random.crowd == ref.model$observed.crowd
+=======
+disp.compare <- subset(ref.model, random.displace!=observed.displace)
+length(disp.compare$actor)
+>>>>>>> Stashed changes
 
 #check that runs are different from each other
 head(subset(ref.model, runID=="run001"))
@@ -119,6 +239,7 @@ length(unique(ref.model$runID))
 
 ```
 
+<<<<<<< Updated upstream
 
 ## SAVE RUN OUTPUT FOR FINAL ANALYSIS
 Check refmodel files to see whether set.seed works
@@ -130,15 +251,26 @@ setdiff(refmodeldata, refmodel.vAM)
 ```
 
 Files are the same so set.seed did work. 
+=======
+## SAVE RUN OUTPUT FOR FINAL ANALYSIS
+Save all.runs when we run the final analysis on the last 3 days in per0. Unfortunately I haven't figured out how to set the seed for each run in lapply so we need to save the runs and put them on github in case we want to make figures later or re-run any analyses (or someone else wants to run analyses with the same reference data)
+>>>>>>> Stashed changes
 
 ** Note: change the file path to save to another location
 
 ```{r}
 #WRITE DATA 
+<<<<<<< Updated upstream
 dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behaviors/poolVSseparate/"
 #dfile.loc <- "C:/Users/avdma/OneDrive - University of Cincinnati/Documents/Postdoc_UC/Hobson lab/pool-separate-behaviors/"
 #dfile.loc <- "YOUR LOCATION"
 
 write.csv(ref.model, file = paste(dfile.loc, "EXPLORE-refmodeldata.csv", sep=""))	
+=======
+dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behaviors/pool-separate-behaviors/"
+#dfile.loc <- YOUR LOCATION HERE
+
+#write.csv(ref.model, file = paste(dfile.loc, "EXPLORE-refmodeldata.csv", sep=""))	
+>>>>>>> Stashed changes
 ```
 

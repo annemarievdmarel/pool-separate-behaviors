@@ -1,0 +1,106 @@
+---
+title: 'Pool vs separate: compare ref model & observed'
+author: "Liz Hobson"
+date: "May 27, 2020"
+output: html_document
+---
+
+#Import data & process
+
+```{r}
+#load the summaries of the explore data
+EXPLORE_refmodel_summaries <- read.csv(file="EXPLORE_refmodel_summaries.csv")
+head(EXPLORE_refmodel_summaries)
+
+EXPLORE_refmodelCOR_CxD <- read.csv(file="EXPLORE_refmodelCOR_CxD.csv")
+
+#load the summaries of the observed data
+
+
+head(EXPLORE_refmodelCOR_CxD)
+
+#ref.model <- EXPLORE_refmodeldata #update name here when changing to ANALYZE ref model
+
+#strategies summary
+EXPLORE_SUMM.refmodel.strategies <- read.csv(file="EXPLORE_SUMM.refmodel.strategiesread.csv")
+```
+
+## Helper functions & data
+```{r}
+
+#make matrix function (from dataframe, 1st col with row names)
+matrix.please<-function(x) {
+  m<-as.matrix(x[,-1])
+  rownames(m)<-x[,1]
+  m
+}
+
+#list of all valid color combinations
+bird.list <- c("BBB","BBG","BBR","BGB","BGG","BRB","BRR","GBB","GBG","GGB","GGG","GGR","GRG","GRR","RBB","RBG","RBR","RGG","RGR","RRG","RRR")
+length(bird.list)
+
+dyad.list <- expand.grid(bird.list, bird.list) #head(dyad.list)
+names(dyad.list) <- c("actor", "subject")
+dyad.list <- subset(dyad.list, actor!=subject)
+dyad.list$dyadID <- paste(dyad.list$actor, dyad.list$subject, sep="-")
+
+```
+
+#Plot reference model correlations with observed correlation
+
+```{r}
+# find proportion of random corr strengths less than the real corr strength
+# you can use this as a kind of p value
+# pval should be >0.975 for two-tailed test, >0.95 for one-tailed test for something significantly different from the random values in the reference model
+prop.val <- nrow(COR.random[COR.random$COR<COR.real, ])/nrow(COR.random) 
+pval <- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+
+d <- density(COR.random$COR) 
+            
+plot(d, main=paste0("Distribution of displacement and crowd correlations, p-val=", pval),
+     xlab="Correlation strength", xlim=c(0, 1), las=1)
+
+polygon(d, col="gray", border="black")
+
+abline(v=COR.real, col="red")
+abline(v=COR.random.mean, col="black")
+#text(x=0.15, y=2, paste0("p-value = ", pval))
+```
+
+
+# STRATEGIES
+
+## How many runs had the same strategy vs different?
+
+```{r}
+#find all strategy types
+unique(ref.model.strategies$strategy.Rcrowd)
+unique(ref.model.strategies$strategy.Rdisp)
+
+#summarize
+#find number of runs with each strategy
+refstrats.crowd <- ref.model.strategies %>% 
+                  dplyr::group_by(strategy.Rcrowd) %>% 
+                  dplyr::tally()
+
+refstrats.disp <- ref.model.strategies %>% 
+                  dplyr::group_by(strategy.Rdisp) %>% 
+                  dplyr::tally()
+
+colnames(refstrats.crowd) <- c("strategy", "runs.crowd")
+colnames(refstrats.disp) <- c("strategy", "runs.disp")
+
+refstratsXtype <- merge(refstrats.crowd, refstrats.disp, by="strategy")
+refstratsXtype
+
+#group by both types: when crowd returns one strategy, how often is it the same as disp?
+refstrats <- ref.model.strategies %>% 
+                  dplyr::group_by(strategy.Rcrowd, strategy.Rdisp) %>% 
+                  dplyr::tally()
+
+#cast: crowd strategies as row names, displace strategies in as column names
+refstrats.cast <- matrix.please(reshape2::dcast(refstrats, strategy.Rcrowd~strategy.Rdisp, value.var="n"))
+refstrats.cast
+
+
+```
