@@ -11,8 +11,8 @@ library(dplyr)
 library(reshape2)
 library(stringr)
 library(purrr)
-library(aniDom)
 library(EloRating)
+library(domstruc) #install_github("danm0nster/domstruc")
 
 ```
 
@@ -35,7 +35,7 @@ observedXdyad <- observedXdyad %>%
                   dplyr::group_by(actor, subject) %>% 
                   dplyr::summarise(observed.crowd=sum(crowd),
                           observed.displace=sum(displace),
-                          observed.totalCD=sum(total.DC))
+                          observed.totalCD=sum(total.DC)) 
 
 observedXdyad <- as.data.frame(observedXdyad)   
 observedXdyad$actor <- as.character(observedXdyad$actor)
@@ -69,13 +69,23 @@ matrix.please<-function(x) {
 bird.list <- c("BBB","BBG","BBR","BGB","BGG","BRB","BRR","GBB","GBG","GGB","GGG","GGR","GRG","GRR","RBB","RBG","RBR","RGG","RGR","RRG","RRR")
 length(bird.list)
 
+## dataframe of all possible dyad combinations
 dyad.list <- expand.grid(bird.list, bird.list) #head(dyad.list)
 names(dyad.list) <- c("actor", "subject")
 dyad.list <- subset(dyad.list, actor!=subject)
 dyad.list$dyadID <- paste(dyad.list$actor, dyad.list$subject, sep="-")
 dyad.list$actor <- as.character(dyad.list$actor)
 dyad.list$subject <- as.character(dyad.list$subject)
+head(dyad.list)
 
+# alternatively using dplyr
+dyad.list <- expand.grid(bird.list, bird.list) %>%
+  rename(actor=Var1, subject=Var2) %>%
+  filter(actor!=subject) %>%
+  unite(dyadID, actor, subject, sep = "-", remove = FALSE)
+dyad.list$actor <- as.character(dyad.list$actor)
+dyad.list$subject <- as.character(dyad.list$subject)
+head(dyad.list)
 ```
 
 
@@ -98,7 +108,7 @@ observedXdyad.alldyads <- merge(observedXdyad, dyad.list,
                            by=c("actor", "subject"), 
                            all.y=TRUE)
 head(observedXdyad.alldyads)
-str(observedXdyad.alldyads) #should have 420 dyads
+str(observedXdyad.alldyads) #should have 420 dyads #length(dyad.list$dyadID)
 
 # convert NA to 0's
 observedXdyad.alldyads[is.na(observedXdyad.alldyads)] <- 0
@@ -116,7 +126,6 @@ subset(observedXdyad.alldyads, actor=="BBB" & subject=="GGG")
 subset(observedXdyad.alldyads, actor=="GGG" & subject=="BBB")
 OBS.crd.mx[1,] #BBB wins against GGG
 OBS.crd.mx[11,] # GGG wins against BBB
-
 ```
 
 
@@ -126,9 +135,7 @@ OBS.crd.mx[11,] # GGG wins against BBB
 ```{r}
 start.time <- Sys.time()
 
-#head(aggdata.subd.sumXdyad)
-
-  obs.cor <- cor(observedXdyad.alldyads$observed.crowd, observedXdyad.alldyads$observed.displace)
+obs.cor <- cor(observedXdyad.alldyads$observed.crowd, observedXdyad.alldyads$observed.displace)
 
   #summarize basic info
   n.Obcrowd <- sum(observedXdyad.alldyads$observed.crowd)
@@ -142,8 +149,8 @@ start.time <- Sys.time()
   n.Obcrowd.dyads <- length(obsdyads.crowd$actor)
   n.Obdisplace.dyads <- length(obsdyads.displace$actor)
 
-  Obcrowd.density <- n.Obcrowd.dyads/420
-  Obdisplace.density <- n.Obdisplace.dyads/420
+  Obcrowd.density <- n.Obcrowd.dyads/length(dyad.list$dyadID)
+  Obdisplace.density <- n.Obdisplace.dyads/length(dyad.list$dyadID)
   
   # Pool basic summaries
   Obcd.basic <- cbind.data.frame(obs.cor, 
@@ -152,7 +159,6 @@ start.time <- Sys.time()
                                 n.Obcrowd.dyads, n.Obdisplace.dyads,
                                 Obcrowd.density, Obdisplace.density
                                 )
-  #str(ref.model)
   
   # START NETWORK ANALYSES
   
@@ -173,7 +179,7 @@ start.time <- Sys.time()
   #Find proportion unknown relationships, a measure of sparseness
   Obcrowd.prunk <- EloRating::prunk(obs.crowd.mx)
   Obcrowd.prunk.pu <- as.numeric(Obcrowd.prunk[1])
-  Obcrowd.prunk.dyads <- as.numeric(Obcrowd.prunk[2])
+  Obcrowd.prunk.dyads <- as.numeric(Obcrowd.prunk[2]) # number of dyads with no interactions? double check because it didn't coincide with actual numbers -> seems like it is total N
   
   #Triangle transitivity
   Obcrowd.transi <- EloRating::transitivity(obs.crowd.mx, runs = 1000)
@@ -181,26 +187,25 @@ start.time <- Sys.time()
   Obcrowd.transi.ttri <- Obcrowd.transi[2]  
   
   # Compute focus & position
-  Obfocus.crowd <- dom_focus(obs.crowd.mx)
-  Obposition.crowd <- dom_position(obs.crowd.mx)
-  Obfp.crowd <- cbind.data.frame(Obfocus.crowd, Obposition.crowd)
-  colnames(Obfp.crowd) <- c("focus", "position")
+  Obcrowd.focus <- dom_focus(obs.crowd.mx)
+  Obcrowd.position <- dom_position(obs.crowd.mx)
+  Obcrowd.fp <- cbind.data.frame(Obcrowd.focus, Obcrowd.position)
+  colnames(Obcrowd.fp) <- c("focus", "position")
   
   #Compute blur models
-  Obblur.crowd <- dom_make_blur_data(obs.crowd.mx)
+  Obcrowd.blur <- dom_make_blur_data(obs.crowd.mx)
   
   #Find strategy
-  strategy.Obcrowd <- dom_categorize_strategy(data=Obfp.crowd, blur_data=Obblur.crowd)
+  strategy.Obcrowd <- dom_categorize_strategy(data=Obcrowd.fp, blur_data=Obcrowd.blur)
   
   
   ### POOL crowd hierarchy
   Obcrowd.hier <- cbind.data.frame(
                                   Obcrowd.linearity, 
                                   Obcrowd.steepness, 
-                                  Obfocus.crowd, Obposition.crowd,
                                   Obcrowd.prunk.pu, Obcrowd.prunk.dyads,
                                   Obcrowd.transi.Pt, Obcrowd.transi.ttri,
-                                  Obfocus.crowd, Obposition.crowd,
+                                  Obcrowd.focus, Obcrowd.position,
                                   strategy.Obcrowd
                                   )
   
@@ -228,26 +233,25 @@ start.time <- Sys.time()
   Obdisp.transi.ttri <- Obdisp.transi[2]  
   
   # Compute focus & position
-  Obfocus.disp <- dom_focus(obs.disp.mx)
-  Obposition.disp <- dom_position(obs.disp.mx)
-  Obfp.disp <- cbind.data.frame(Obfocus.disp, Obposition.disp)
-  colnames(Obfp.disp) <- c("focus", "position")
+  Obdisp.focus <- dom_focus(obs.disp.mx)
+  Obdisp.position <- dom_position(obs.disp.mx)
+  Obdisp.fp <- cbind.data.frame(Obdisp.focus, Obdisp.position)
+  colnames(Obdisp.fp) <- c("focus", "position")
   
   #Compute blur models
-  Obblur.disp <- dom_make_blur_data(obs.disp.mx)
+  Obdisp.blur <- dom_make_blur_data(obs.disp.mx)
   
   #Find strategy
-  strategy.Obdisp <- dom_categorize_strategy(data=Obfp.disp, blur_data=Obblur.disp)
+  strategy.Obdisp <- dom_categorize_strategy(data=Obdisp.fp, blur_data=Obdisp.blur)
   
   
   ### POOL disp hierarchy
   Obdisp.hier <- cbind.data.frame(
                                   Obdisp.linearity, 
                                   Obdisp.steepness, 
-                                  Obfocus.disp, Obposition.disp,
                                   Obdisp.prunk.pu, Obdisp.prunk.dyads,
                                   Obdisp.transi.Pt, Obdisp.transi.ttri,
-                                  Obfocus.disp, Obposition.disp,
+                                  Obdisp.focus, Obdisp.position,
                                   strategy.Obdisp
                                   )
 
@@ -277,33 +281,26 @@ start.time <- Sys.time()
   ObtotalCD.transi.ttri <- ObtotalCD.transi[2]  
   
   # Compute focus & position
-  Obfocus.totalCD <- dom_focus(obs.totalCD.mx)
-  Obposition.totalCD <- dom_position(obs.totalCD.mx)
-  Obfp.totalCD <- cbind.data.frame(Obfocus.totalCD, Obposition.totalCD)
-  colnames(Obfp.totalCD) <- c("focus", "position")
+  ObtotalCD.focus <- dom_focus(obs.totalCD.mx)
+  ObtotalCD.position <- dom_position(obs.totalCD.mx)
+  ObtotalCD.fp <- cbind.data.frame(ObtotalCD.focus, ObtotalCD.position)
+  colnames(ObtotalCD.fp) <- c("focus", "position")
   
   #Compute blur models
-  Obblur.totalCD <- dom_make_blur_data(obs.totalCD.mx)
+  ObtotalCD.blur <- dom_make_blur_data(obs.totalCD.mx)
   
   #Find strategy
-  Obstrategy.totalCD <- dom_categorize_strategy(data=Obfp.totalCD, blur_data=Obblur.totalCD)
+  Obstrategy.totalCD <- dom_categorize_strategy(data=ObtotalCD.fp, blur_data=ObtotalCD.blur)
   
   
   ### POOL totalCD hierarchy
   ObtotalCD.hier <- cbind.data.frame(
                                   ObtotalCD.linearity, 
                                   ObtotalCD.steepness, 
-                                  Obfocus.totalCD, Obposition.totalCD,
+                                  ObtotalCD.focus, ObtotalCD.position,
                                   ObtotalCD.prunk.pu, ObtotalCD.prunk.dyads,
                                   ObtotalCD.transi.Pt, ObtotalCD.transi.ttri,
-                                  Obfocus.totalCD, Obposition.totalCD,
-                                  ObtotalCD.linearity, 
-                                  ObtotalCD.steepness, 
-                                  Obfocus.totalCD, Obposition.totalCD,
-                                  ObtotalCD.prunk.pu, ObtotalCD.prunk.dyads,
-                                  ObtotalCD.transi.Pt, ObtotalCD.transi.ttri,
-                                  Obfocus.totalCD, Obposition.totalCD,
-                                  Obstrategy.totalCD
+                                  ObtotalCD.focus, ObtotalCD.position
                                   )
     
 # POOL ALL DATA
@@ -314,6 +311,7 @@ end.time <- Sys.time()
 
 #Time to run:
 end.time - start.time
+
 
 #check the data
 t(observed.summary)
@@ -498,6 +496,15 @@ end.time - start.time
 
 #t(ref.model.summaries)
 head(ref.model.summaries)
+
+# add correlation to ref.model dataframe
+head(EXPLORE_refmodelCOR_CxD)
+EXPLORE_refmodelCOR<-EXPLORE_refmodelCOR_CxD %>%
+  select(-X) %>%
+  rename(Rcor=COR, run.cor=runID)
+
+refmodel.summary <- left_join(ref.model.summaries,EXPLORE_refmodelCOR, by="run.cor" )
+head(refmodel.summary)
 
 #WRITE DATA
 dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behaviors/pool-separate-behaviors/"
