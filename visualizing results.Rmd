@@ -1,0 +1,150 @@
+---
+title: "Visualizing results"
+author: "Annemarie"
+date: "01/06/2020"
+output: html_document
+---
+
+Comparison of real vs randomized data in 4-6 plots:
+- correlation crowds vs displacements
+- density
+- linearity
+- steepness
+- transitivity
+- sparseness
+
+# load packages
+```{r setup, include=FALSE}
+library(beanplot)
+citation("beanplot")
+```
+
+# Import data
+
+```{r}
+ref.model.summaries<- read.csv("EXPLORE-SUMM.refmodel.csv")
+observed.summary <- read.csv("EXPLORE-SUMM.observed.csv")
+```
+
+## Including Plots
+# correlation
+```{r pressure, echo=FALSE}
+# correlation
+beanplot(refmodel.summary$Rcor,  
+         main="Distribution of correlations", 
+         ylab="Correlation strength", 
+         ylim=c(0, 1),
+         las=1, col = alpha("black", 0.6)) 
+points(1,observed.summary$obs.cor, col="#fc8d62", pch=7)
+
+```
+I added correlation to the refmodel.summaries dataset in our script. if we decide not to do that we have to load the correlation dataframe separately: 
+```{r}
+#reference model correlations of crowd vs displacements
+EXPLORE_refmodelCOR_CxD <- read.csv(file="EXPLORE_refmodelCOR_CxD.csv")
+correlationsCxD<-EXPLORE_refmodelCOR_CxD 
+head(correlationsCxD)
+
+beanplot(correlationsCxD$COR,  
+         main="Distribution of correlations", 
+         ylab="Correlation strength", 
+         ylim=c(0, 1),
+         las=1, col = alpha("black", 0.6)) 
+points(1,observed.summary$obs.cor, col="#fc8d62", pch=7)
+
+```
+
+
+
+
+# Proportion of number of interactions by total observed
+```{r, echo=FALSE}
+# histogram dyadic relationships
+beanplot(refmodel.summary$prop.Rcrowd, refmodel.summary$prop.Rdisplace,  
+         main="Distribution of proportions", 
+         ylab="# interactions/total observed", 
+         ylim = c(min(observed.summary$prop.Obcrowd-0.1), 
+                  max(observed.summary$prop.Obdisplace+0.1)),
+         xlab = "interaction", names = c("crowds", "displacements"),
+         col = alpha("black", 0.6))
+points(1,observed.summary$prop.Obcrowd, col="#fc8d62", pch=7) # crowds
+points(2,observed.summary$prop.Obdisplace, col="#8da0cb", pch=7) # crowds
+```
+
+# Density
+```{r, echo=FALSE}
+# density
+beanplot(refmodel.summary$Rcrowd.density, refmodel.summary$Rdisplace.density,  
+         main="Distribution of density", 
+         ylab="prop agonistic dyads/total dyads", 
+         ylim = c(min(observed.summary$Obcrowd.density-0.1), 
+                  max(observed.summary$Obdisplace.density+0.1)),
+         xlab = "interaction", names = c("crowds", "displacements"),
+         col = alpha("black", 0.6))
+points(1,observed.summary$Obcrowd.density, col="#fc8d62", pch=7) # crowds
+points(2,observed.summary$Obdisplace.density, col="#8da0cb", pch=7) # displacements
+```
+# Linearity
+```{r, echo=FALSE}
+# linearity
+beanplot(refmodel.summary$Rcrowd.linearity, refmodel.summary$Rdisp.linearity, 
+         main="Distribution of linearity", 
+         ylab="h index", log = "",
+         ylim = c(min(observed.summary$Obcrowd.linearity-0.1), 
+                  max(observed.summary$Obdisp.linearity+0.1)),
+         xlab = "interaction", names = c("crowds", "displacements"),
+         col = alpha("black", 0.6))
+points(1,observed.summary$Obcrowd.linearity, col="#fc8d62", pch=7) # crowds
+points(2,observed.summary$Obdisp.linearity, col="#8da0cb", pch=7) # displacements
+```
+
+# Steepness
+```{r, echo=FALSE}
+beanplot(refmodel.summary$Rcrowd.steepness, refmodel.summary$Rdisp.steepness,
+         main="Distribution of steepness", 
+         ylab="Dij", las=1, log = "",
+         ylim = c(min(observed.summary$Obcrowd.steepness-0.1), 
+        max(refmodel.summary$Rdisp.steepness,observed.summary$Obdisp.steepness+0.1)),
+         xlab = "interaction", names = c("crowds", "displacements"),
+         col = alpha("black", 0.6))
+points(1,observed.summary$Obcrowd.steepness, col="#fc8d62", pch=7) # crowds
+points(2,observed.summary$Obdisp.steepness, col="#8da0cb", pch=7) # displacements
+```
+
+# Sparseness
+```{r}
+# sparseness
+beanplot(refmodel.summary$Rcrowd.prunk.pu, refmodel.summary$Rdisp.prunk.pu,
+         main ="Distribution of sparseness", 
+         ylab="Sparseness", 
+         ylim=c(min(observed.summary$Obdisp.prunk.pu-0.1), 
+                max(refmodel.summary$Rcrowd.prunk.pu,observed.summary$Obcrowd.prunk.pu+0.1)),
+         las=1, xlab = "interaction", names = c("crowds", "displacements"),
+         col = alpha("black", 0.6))
+points(1,observed.summary$Obcrowd.prunk.pu, col="#fc8d62", pch=7) # crowds
+points(2,observed.summary$Obdisp.prunk.pu, col="#8da0cb", pch=7) # displacements
+```
+
+
+
+# Transitivity
+```{r}
+# transitivity
+beanplot(refmodel.summary$Rcrowd.transi.Pt, refmodel.summary$Rdisp.transi.Pt,
+         main ="Distribution of transitivity", 
+         ylab="Transitivity",
+         ylim=c(min(observed.summary$Obcrowd.transi.Pt-0.1), 
+                max(refmodel.summary$Rdisp.transi.Pt,observed.summary$Obdisp.transi.Pt+0.1)),
+         las=1, xlab = "interaction", names = c("crowds", "displacements"),
+         col = alpha("black", 0.6))
+points(1,observed.summary$Obcrowd.transi.Pt, col="#fc8d62", pch=7) # crowds
+points(2,observed.summary$Obdisp.transi.Pt, col="#8da0cb", pch=7) # displacements
+
+```
+
+# Combine plots
+using par(mfrow=c(3,2)) for the plots with crowds and displacements (6 total), then correlation plot separate
+```{r}
+
+```
+
