@@ -46,7 +46,7 @@ matrix.please<-function(x) {
   m
 }
 
-#list of all valid color combinations
+#list of all valid color combinations/bird IDs
 bird.list <- c("BBB","BBG","BBR","BGB","BGG","BRB","BRR","GBB","GBG","GGB","GGG","GGR","GRG","GRR","RBB","RBG","RBR","RGG","RGR","RRG","RRR")
 length(bird.list)
 
