@@ -5,7 +5,7 @@ date: "May 28, 2020"
 output: html_document
 ---
 
-#Load packages and helper code
+#Load packages
 ```{r}
 library(dplyr)
 library(reshape2)
@@ -43,8 +43,7 @@ replicates <- 100 #how many runs of the reference model were done
 #make empty dataframe to fill
 ref.model.strategies <- data.frame(run.code=character(), 
                                    type=character(), 
-                                   focus.Rcrowd=numeric(), 
-                                   position.Rcrowd=numeric(), 
+                                   fp.Rdisp=numeric(), # to keep things the same between behaviors so instead of focus and position separately
                                    strategy.Rcrowd=numeric(), 
                                    fp.Rdisp=numeric(), 
                                    strategy.Rdisp=numeric()
@@ -91,7 +90,7 @@ for(run in 1:replicates){
   ref.crowd.mx <- matrix.please(ref.crowd.mx)
   
   #CROWDS
-# Compute focus & position
+  # Compute focus & position
   focus.Rcrowd <- dom_focus(ref.crowd.mx)
   position.Rcrowd <- dom_position(ref.crowd.mx)
   fp.Rcrowd <- cbind.data.frame(focus.Rcrowd, position.Rcrowd)
@@ -141,7 +140,8 @@ for(run in 1:replicates){
   
   #pool strategy/run data
   run.strategy.sums <- cbind.data.frame(run.code, 
-                                        focus.Rcrowd, position.Rcrowd, strategy.Rcrowd, 
+                                        focus.Rcrowd, position.Rcrowd,
+                                        strategy.Rcrowd, 
                                         focus.Rdisp, position.Rdisp, strategy.Rdisp
                                         )
   
@@ -155,12 +155,12 @@ end.time <- Sys.time()
 #Time to run:
 end.time - start.time
 
-#t(ref.model.summaries)
-head(ref.model.summaries)
+#t(ref.model.strategies)
+head(ref.model.strategies)
 
 #WRITE DATA
 dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behaviors/pool-separate-behaviors/"
-#write.csv(ref.model.summaries, file = paste(dfile.loc, "EXPLORE_SUMM.refmodel.strategies.csv", sep=""))	
+#write.csv(ref.model.strategies, file = paste(dfile.loc, "EXPLORE_SUMM.refmodel.strategies.csv", sep=""))	
 #write.csv(refmodel.blurdata, file = paste(dfile.loc, "EXPLORE_SUMM.refmodel.blurs.csv", sep=""))	
 
 ```
