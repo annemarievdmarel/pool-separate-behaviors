@@ -18,7 +18,6 @@ library(domstruc) #install_github("danm0nster/domstruc")
 
 
 #Import data & process
-
 ```{r}
 #load the data from the project
 
@@ -27,21 +26,7 @@ EXPLORE_perpre_aggCD <- read.csv(file="EXPLORE-perpre-aggCD.csv")
 observed <- EXPLORE_perpre_aggCD
 head(observed)
 
-#re-summarize observed data
-observedXdyad <- observed
-
-#finds n event per dyad (if this is not summarizing by actor and subject, use detach::plyr)
-observedXdyad <- observedXdyad %>% 
-                  dplyr::group_by(actor, subject) %>% 
-                  dplyr::summarise(observed.crowd=sum(crowd),
-                          observed.displace=sum(displace),
-                          observed.totalCD=sum(total.DC)) 
-
-observedXdyad <- as.data.frame(observedXdyad)   
-observedXdyad$actor <- as.character(observedXdyad$actor)
-observedXdyad$subject <- as.character(observedXdyad$subject)
-
-head(observedXdyad)
+observedXdyad <- observed # observed aggression by dyad
 str(observedXdyad)
 
 
@@ -65,7 +50,7 @@ matrix.please<-function(x) {
   m
 }
 
-#list of all valid color combinations
+#list of all valid color combinations/bird IDs
 bird.list <- c("BBB","BBG","BBR","BGB","BGG","BRB","BRR","GBB","GBG","GGB","GGG","GGR","GRG","GRR","RBB","RBG","RBR","RGG","RGR","RRG","RRR")
 length(bird.list)
 
@@ -78,18 +63,10 @@ dyad.list$actor <- as.character(dyad.list$actor)
 dyad.list$subject <- as.character(dyad.list$subject)
 head(dyad.list)
 
-# alternatively using dplyr
-dyad.list <- expand.grid(bird.list, bird.list) %>%
-  rename(actor=Var1, subject=Var2) %>%
-  filter(actor!=subject) %>%
-  unite(dyadID, actor, subject, sep = "-", remove = FALSE)
-dyad.list$actor <- as.character(dyad.list$actor)
-dyad.list$subject <- as.character(dyad.list$subject)
-head(dyad.list)
 ```
 
 
-# Observed data: how do aggressive strategies compare for displacement-only hierarchies vs crowd-only hierarchies?
+# Check observed data
 Need to make sure that all birds in the group are included in each network (fill no interactions with zeros)
 
 ```{r}
@@ -131,6 +108,8 @@ OBS.crd.mx[11,] # GGG wins against BBB
 
 ##########
 # Summarize OBSERVED DATA
+
+NB! Before you run this chunk, change the location you want to save your file to. You find the code at the end of the chunk under the comment #WRITE DATA
 
 ```{r}
 start.time <- Sys.time()
@@ -316,7 +295,7 @@ end.time - start.time
 #check the data
 t(observed.summary)
 
-#WRITE DATA
+#WRITE DATA (change with your own location)
 dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behaviors/pool-separate-behaviors/"
 #write.csv(observed.summary, file = paste(dfile.loc, "EXPLORE-SUMM.observed.csv", sep=""))	
 
@@ -333,13 +312,15 @@ dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behavio
 Strategies take about 12 min each to run (12x100 crowd, 12x100 disp = 40 hours!)
 Loop other than strategies takes about 14 min
 
+NB! Before you run this chunk, change the location you want to save your file to. You find the code at the end of the chunk under the comment #WRITE DATA
+
 ```{r}
 #run.s #list of all run names
 #head(ref.model)
 #head(EXPLORE_refmodelCOR_CxD)
 
 run.s <- as.character(unique(ref.model$runID))
-n.total.dyads <- 420 #change this if the total number of dyads changes (group size !=21)
+n.total.dyads <- length(dyad.list$dyadID) #total number of dyads 
 replicates <- 100 #how many runs of the reference model were done
 
 #make empty dataframe to fill
@@ -417,7 +398,7 @@ for(run in 1:replicates){
    #fill newly-merged data with 0's where no interactions
   ref.modelW0s[is.na(ref.modelW0s)] <- 0
   
-  ###### separate analyses by type (crowd vs displace)
+###### separate analyses by type (crowd vs displace)
   
   ### CROWD
   
@@ -497,7 +478,7 @@ end.time - start.time
 #t(ref.model.summaries)
 head(ref.model.summaries)
 
-# add correlation to ref.model dataframe
+### add correlation to ref.model dataframe
 head(EXPLORE_refmodelCOR_CxD)
 EXPLORE_refmodelCOR<-EXPLORE_refmodelCOR_CxD %>%
   select(-X) %>%
