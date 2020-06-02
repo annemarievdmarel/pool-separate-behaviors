@@ -69,9 +69,8 @@ Preserve: Keep total events (n disp + n crowd) by dyad the same
 head(observedXdyad) # name from summarize ref model
 
 replicates <- 100
-#observed.data <- aggdata.subd.sumXdyad 
 
-run=2
+#run=2
 
 #make empty dataframe to write loop results into
 ref.model <- data.frame(actor=character(),
@@ -86,12 +85,12 @@ ref.model <- data.frame(actor=character(),
 for (run in 1:replicates) {
   r.seed <- run
   set.seed(r.seed)
-  ref.data <- aggdata.sumXdyad %<>%
+  ref.data <- observedXdyad %>%
                 rowwise() %>%
                 dplyr::mutate(random.displace = sample(0:observed.totalCD, 1),
                               random.crowd = observed.totalCD-random.displace)
   
-  ref.data$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(aggdata.sumXdyad$actor)) #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+  ref.data$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(observedXdyad$actor)) #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
     
   ref.data <- as.data.frame(ref.data)
   ref.model <- rbind.data.frame(ref.model, ref.data)
@@ -134,6 +133,9 @@ for(i in uniqrun){
                                 break
                         } #if there is at least 1 occurrence of a complete match between random.displace and observed.displace columns, then break the loop. No more comparisons will be made. Look at end of randvobs to see which runs had a complete match
 }
+
+#check
+randvobs
 
 
         #loop that compares random.crowds from each run to all other runs 
