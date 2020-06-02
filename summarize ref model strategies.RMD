@@ -19,7 +19,7 @@ library(domstruc)
 
 ```{r}
 #reference model data
-EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv")
+EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv") # file on the EXPLORE_liz github branch is not correct
 head(EXPLORE_refmodeldata)
 
 ref.model <- EXPLORE_refmodeldata #update name here when changing to ANALYZE ref model
@@ -43,7 +43,7 @@ replicates <- 100 #how many runs of the reference model were done
 #make empty dataframe to fill
 ref.model.strategies <- data.frame(run.code=character(), 
                                    type=character(), 
-                                   fp.Rdisp=numeric(), # to keep things the same between behaviors so instead of focus and position separately
+                                   fp.Rcrowd=numeric(), 
                                    strategy.Rcrowd=numeric(), 
                                    fp.Rdisp=numeric(), 
                                    strategy.Rdisp=numeric()
