@@ -23,10 +23,6 @@ EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv") # file on the 
 head(EXPLORE_refmodeldata)
 
 ref.model <- EXPLORE_refmodeldata #update name here when changing to ANALYZE ref model
-
-#observed data
-observed.summary <- read.csv(file="EXPLORE-SUMM.observed.csv")
-head(observed)
 ```
 
 
