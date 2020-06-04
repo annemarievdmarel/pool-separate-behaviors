@@ -148,3 +148,8 @@ using par(mfrow=c(3,2)) for the plots with crowds and displacements (6 total), t
 
 ```
 
+# sessioninfo
+```{r}
+sessionInfo()
+```
+
