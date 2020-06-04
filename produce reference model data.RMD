@@ -6,7 +6,7 @@ output: html_document
 ---
 
 #Load packages and helper code
-```{r}
+```{r, include=FALSE}
 library(dplyr)
 library(reshape2)
 library(stringr)
@@ -84,6 +84,7 @@ ref.model <- data.frame(actor=character(),
 
 for (run in 1:replicates) {
   r.seed <- run
+  RNGkind(sample.kind = "Rounding") # code to get same random numbers across operating systems (mac vs windows)
   set.seed(r.seed)
   ref.data <- observedXdyad %>%
                 rowwise() %>%
@@ -193,9 +194,13 @@ end.time - start.time
 ## SAVE RUN OUTPUT FOR FINAL ANALYSIS
 Check refmodel files to see whether set.seed works
 ```{r}
-refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv") %>% select(-X)  # file from github
-refmodel.vAM <- ref.model # file from local environment
-setdiff(refmodeldata, refmodel.vAM) 
+refmodeldata.Sanjay <- read.csv(file="EXPLORE-refmodeldata-SP-3June.csv") %>% select(-X)  # file from github
+
+refmodel.AM <- read.csv(file="EXPLORE-refmodeldata-2June.csv") %>% select(-X)  # file from local environment
+head(ref.model) # newly generated reference model
+
+setdiff(refmodeldata.Sanjay, ref.model) 
+setdiff(refmodel.AM, ref.model)
 
 ```
 
@@ -210,5 +215,10 @@ dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behavio
 #dfile.loc <- "YOUR LOCATION"
 
 write.csv(ref.model, file = paste(dfile.loc, "EXPLORE-refmodeldata.csv", sep=""))	
+```
+
+# session info 
+```{r}
+sessionInfo()
 ```
 
