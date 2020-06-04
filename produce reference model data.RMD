@@ -84,7 +84,7 @@ ref.model <- data.frame(actor=character(),
 
 for (run in 1:replicates) {
   r.seed <- run
-  RNGkind(sample.kind = "Rounding") # code to get same random numbers across operating systems (mac vs windows)
+  RNGkind(sample.kind="default") # code to get same random numbers across operating systems (mac vs windows)
   set.seed(r.seed)
   ref.data <- observedXdyad %>%
                 rowwise() %>%
@@ -162,7 +162,7 @@ start.time = Sys.time()
                   
                         if(sum(empdf[,1]==nrowxrun)>0){
                                 break
-                        } #if there is at least 1 occurrence of a complete match between random.crowd columns                         from the two runs, then break the inner loop
+                        } #if there is at least 1 occurrence of a complete match between random.crowd columns from the two runs, then break the inner loop
                         
                 }
         
@@ -173,7 +173,7 @@ start.time = Sys.time()
                                
                 if(sum(empdf[,1]==nrowxrun)>0){
                         break
-                } #if there is at least 1 occurrence of a complete match between random.crowd columns from                   the two runs, then break the entire loop - no more comparisons will be made. Look at end of                  empdf to see which runs had a complete match
+                } #if there is at least 1 occurrence of a complete match between random.crowd columns from the two runs, then break the entire loop - no more comparisons will be made. Look at end of empdf to see which runs had a complete match
                 
         } #returns empdf with number of matches for each pair of runs being compared
 
@@ -194,9 +194,9 @@ end.time - start.time
 ## SAVE RUN OUTPUT FOR FINAL ANALYSIS
 Check refmodel files to see whether set.seed works
 ```{r}
-refmodeldata.Sanjay <- read.csv(file="EXPLORE-refmodeldata-SP-3June.csv") %>% select(-X)  # file from github
+refmodeldata.Sanjay <- read.csv(file="EXPLORE-refmodeldata-SP-3June.csv") %>% select(-X)  # file from Sanjay's Mac
 
-refmodel.AM <- read.csv(file="EXPLORE-refmodeldata-2June.csv") %>% select(-X)  # file from local environment
+refmodel.AM <- read.csv(file="EXPLORE-refmodeldata-2June.csv") %>% select(-X)  # file from local environment on Windows laptop
 head(ref.model) # newly generated reference model
 
 setdiff(refmodeldata.Sanjay, ref.model) 
@@ -215,6 +215,7 @@ dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behavio
 #dfile.loc <- "YOUR LOCATION"
 
 write.csv(ref.model, file = paste(dfile.loc, "EXPLORE-refmodeldata.csv", sep=""))	
+write.csv(ref.model, file = "EXPLORE-refmodeldata.csv")
 ```
 
 # session info 
