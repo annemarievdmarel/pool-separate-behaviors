@@ -162,8 +162,8 @@ obs.cor <- cor(observedXdyad.alldyads$observed.crowd, observedXdyad.alldyads$obs
   
   #Triangle transitivity
   Obcrowd.transi <- EloRating::transitivity(obs.crowd.mx, runs = 1000)
-  Obcrowd.transi.Pt <- Obcrowd.transi[1]  
-  Obcrowd.transi.ttri <- Obcrowd.transi[2]  
+  Obcrowd.transi.Pt <- Obcrowd.transi[1]  # proportion of transitive triads
+  Obcrowd.transi.ttri <- Obcrowd.transi[2]  # triangle transitivity
   
   # Compute focus & position
   Obcrowd.focus <- dom_focus(obs.crowd.mx)
@@ -256,8 +256,8 @@ obs.cor <- cor(observedXdyad.alldyads$observed.crowd, observedXdyad.alldyads$obs
   
   #Triangle transitivity
   ObtotalCD.transi <- EloRating::transitivity(obs.totalCD.mx, runs = 1000)
-  ObtotalCD.transi.Pt <- ObtotalCD.transi[1]  
-  ObtotalCD.transi.ttri <- ObtotalCD.transi[2]  
+  ObtotalCD.transi.Pt <- ObtotalCD.transi[1]  # proportion of transitive triads
+  ObtotalCD.transi.ttri <- ObtotalCD.transi[2]  # triangle transitivity
   
   # Compute focus & position
   ObtotalCD.focus <- dom_focus(obs.totalCD.mx)
@@ -420,8 +420,8 @@ for(run in 1:replicates){
   
   #Triangle transitivity
   Rcrowd.transi <- EloRating::transitivity(ref.crowd.mx, runs = 1000)
-  Rcrowd.transi.Pt <- Rcrowd.transi[1]  
-  Rcrowd.transi.ttri <- Rcrowd.transi[2]  
+  Rcrowd.transi.Pt <- Rcrowd.transi[1]  # proportion of transitive triads
+  Rcrowd.transi.ttri <- Rcrowd.transi[2]  # triangle transitivity
   
   
   ### POOL crowd hierarchy
@@ -452,8 +452,8 @@ for(run in 1:replicates){
   
   #Triangle transitivity
   Rdisp.transi <- EloRating::transitivity(ref.disp.mx, runs = 1000)
-  Rdisp.transi.Pt <- Rdisp.transi[1]  
-  Rdisp.transi.ttri <- Rdisp.transi[2]  
+  Rdisp.transi.Pt <- Rdisp.transi[1]  # proportion of transitive triads
+  Rdisp.transi.ttri <- Rdisp.transi[2]  # triangle transitivity
   
 
   
