@@ -52,7 +52,7 @@ run.s <- unique(ref.model$runID)
 for(run in 1:replicates){
   run.code <- run.s[run]
   run.data <- subset(ref.model, runID==run.code)
-  run.corr <- subset(COR.random, runID==run.code)
+  run.corr <- subset(COR.refmodel, runID==run.code)
   with (run.data, plot (random.displace, random.crowd, main=paste0(run.code, " Correlation=", round(run.corr$COR, 2))))
   with (run.data, abline(lm(random.crowd~random.displace), col="grey")) # regression line (y~x)
 }
