@@ -34,8 +34,8 @@ beanplot(refmodel.summary$Rcor,
          main="Distribution of correlations", 
          ylab="Correlation strength", 
          ylim=c(0, 1),
-         las=1, col = alpha("black", 0.6)) 
-points(1,observed.summary$obs.cor, col="#fc8d62", pch=7)
+         las=1, col = c("lightgrey", alpha("black", 0.6)), border = "NA") 
+points(1,observed.summary$obs.cor, col="red", pch=7)
 
 ```
 I added correlation to the refmodel.summaries dataset in our script. if we decide not to do that we have to load the correlation dataframe separately: 
@@ -66,10 +66,11 @@ beanplot(refmodel.summary$prop.Rcrowd, refmodel.summary$prop.Rdisplace,
          ylim = c(min(observed.summary$prop.Obcrowd-0.1), 
                   max(observed.summary$prop.Obdisplace+0.1)),
          xlab = "interaction", names = c("crowds", "displacements"),
-         col = c("lightgrey", alpha("black", 0.6)), 
+         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
+                    border = 'NA', 
          ll = 0.1, beanlinewd = 0.1)
-points(1,observed.summary$prop.Obcrowd, col="#fc8d62", pch=7) # crowds
-points(2,observed.summary$prop.Obdisplace, col="#8da0cb", pch=7) # crowds
+points(1,observed.summary$prop.Obcrowd, col="#8da0cb" , pch=7) # crowds
+points(2,observed.summary$prop.Obdisplace, col="#fc8d62", pch=7) # displacements
 ```
 
 # Density
@@ -81,10 +82,12 @@ beanplot(refmodel.summary$Rcrowd.density, refmodel.summary$Rdisplace.density,
          ylim = c(min(observed.summary$Obcrowd.density-0.1), 
                   max(observed.summary$Obdisplace.density+0.1)),
          xlab = "interaction", names = c("crowds", "displacements"),
-         col = c("lightgrey", alpha("black", 0.6)), 
+         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
+         border = 'NA', 
          ll = 0.05, beanlinewd = 0.1)
-points(1,observed.summary$Obcrowd.density, col="#fc8d62", pch=7) # crowds
-points(2,observed.summary$Obdisplace.density, col="#8da0cb", pch=7) # displacements
+points(1,observed.summary$Obcrowd.density, col="#8da0cb" , pch=7) # crowds
+points(2,observed.summary$Obdisplace.density, col="#fc8d62", pch=7) # displacements
+ 
 ```
 # Linearity
 ```{r, echo=FALSE}
@@ -95,24 +98,29 @@ beanplot(refmodel.summary$Rcrowd.linearity, refmodel.summary$Rdisp.linearity,
          ylim = c(min(observed.summary$Obcrowd.linearity-0.1), 
                   max(observed.summary$Obdisp.linearity+0.1)),
          xlab = "interaction", names = c("crowds", "displacements"),
-         col = c("lightgrey", alpha("black", 0.6)), 
+         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
+         border = 'NA', 
          ll = 0.1, beanlinewd = 0.1)
-points(1,observed.summary$Obcrowd.linearity, col="#fc8d62", pch=7) # crowds
-points(2,observed.summary$Obdisp.linearity, col="#8da0cb", pch=7) # displacements
+points(1,observed.summary$Obcrowd.linearity, col= "#8da0cb", pch=7) # crowds
+points(2,observed.summary$Obdisp.linearity, col= "#fc8d62", pch=7) # displacements
+abline(h=observed.summary$ObtotalCD.linearity, col="red")  # add line estimate of totalDC 
 ```
 
 # Steepness
 ```{r, echo=FALSE}
+# steepness
 beanplot(refmodel.summary$Rcrowd.steepness, refmodel.summary$Rdisp.steepness,
          main="Distribution of steepness", 
          ylab="Dij", las=1, log = "",
          ylim = c(min(observed.summary$Obcrowd.steepness-0.1), 
         max(refmodel.summary$Rdisp.steepness,observed.summary$Obdisp.steepness+0.1)),
          xlab = "interaction", names = c("crowds", "displacements"),
-         col = c("lightgrey", alpha("black", 0.6)), 
+         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
+         border = 'NA', 
          ll = 0.1, beanlinewd = 0.1)
-points(1,observed.summary$Obcrowd.steepness, col="#fc8d62", pch=7) # crowds
-points(2,observed.summary$Obdisp.steepness, col="#8da0cb", pch=7) # displacements
+points(1,observed.summary$Obcrowd.steepness, col="#8da0cb", pch=7) # crowds
+points(2,observed.summary$Obdisp.steepness, col="#fc8d62", pch=7) # displacements
+abline(h=observed.summary$ObtotalCD.steepness, col="red")  # add line estimate of totalDC 
 ```
 
 # Sparseness
@@ -124,10 +132,12 @@ beanplot(refmodel.summary$Rcrowd.prunk.pu, refmodel.summary$Rdisp.prunk.pu,
          ylim=c(min(observed.summary$Obdisp.prunk.pu-0.1), 
                 max(refmodel.summary$Rcrowd.prunk.pu,observed.summary$Obcrowd.prunk.pu+0.1)),
          las=1, xlab = "interaction", names = c("crowds", "displacements"),
-         col = c("lightgrey", alpha("black", 0.6)), 
+         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
+         border = 'NA', 
          ll = 0.05, beanlinewd = 0.1)
-points(1,observed.summary$Obcrowd.prunk.pu, col="#fc8d62", pch=7) # crowds
-points(2,observed.summary$Obdisp.prunk.pu, col="#8da0cb", pch=7) # displacements
+points(1,observed.summary$Obcrowd.prunk.pu, col="#8da0cb" , pch=7) # crowds
+points(2,observed.summary$Obdisp.prunk.pu, col="#fc8d62", pch=7) # displacements
+abline(h=observed.summary$ObtotalCD.steepness, col="red")  # add line estimate of totalDC 
 ```
 
 
@@ -141,16 +151,94 @@ beanplot(refmodel.summary$Rcrowd.transi.ttri, refmodel.summary$Rdisp.transi.ttri
          ylim=c(min(refmodel.summary$Rdisp.transi.ttri-0.1), 
                 max(refmodel.summary$Rdisp.transi.ttri,refmodel.summary$Rdisp.transi.ttri+0.1)),
          las=1, xlab = "interaction", names = c("crowds", "displacements"),
-         col = c("lightgrey", alpha("black", 0.6)), 
+         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
+         border = 'NA', 
          ll = 0.1, beanlinewd = 0.1)
-points(1,observed.summary$Obcrowd.transi.ttri, col="#fc8d62", pch=7) # crowds
-points(2,observed.summary$Obdisp.transi.ttri, col="#8da0cb", pch=7) # displacements
+points(1,observed.summary$Obcrowd.transi.ttri, col= "#8da0cb" , pch=7) # crowds
+points(2,observed.summary$Obdisp.transi.ttri, col= "#fc8d62", pch=7) # displacements
+abline(h=observed.summary$ObtotalCD.transi.ttri, col="red")  # add line estimate of totalDC 
 
 ```
 
 # Combine plots
 using par(mfrow=c(3,2)) for the plots with crowds and displacements (6 total), then correlation plot separate
 ```{r}
+par(mfrow=c(3,2))
+
+# density
+beanplot(refmodel.summary$Rcrowd.density, refmodel.summary$Rdisplace.density,  
+         main="Density", 
+         ylab="prop agonistic dyads/total dyads", 
+         ylim = c(min(observed.summary$Obcrowd.density-0.1), 
+                  max(observed.summary$Obdisplace.density+0.1)),
+         #xlab = "", names = c("crowds", "displacements"),
+         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
+         border = 'NA', 
+         ll = 0.05, beanlinewd = 0.1)
+points(1,observed.summary$Obcrowd.density, col="#8da0cb" , pch=7) # crowds
+points(2,observed.summary$Obdisplace.density, col="#fc8d62", pch=7) # displacements
+abline(h=observed.summary$ObtotalCD.density, col="red") # add line estimate of totalDC
+
+
+# linearity
+beanplot(refmodel.summary$Rcrowd.linearity, refmodel.summary$Rdisp.linearity, 
+         main="Linearity", 
+         ylab="h index", log = "",
+         ylim = c(min(observed.summary$Obcrowd.linearity-0.1), 
+                  max(observed.summary$Obdisp.linearity+0.1)),
+         xlab = "", names = c("crowds", "displacements"),
+         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
+         border = 'NA', 
+         ll = 0.1, beanlinewd = 0.1)
+points(1,observed.summary$Obcrowd.linearity, col= "#8da0cb", pch=7) # crowds
+points(2,observed.summary$Obdisp.linearity, col= "#fc8d62", pch=7) # displacements
+abline(h=observed.summary$ObtotalCD.linearity, col="red")  # add line estimate of totalDC 
+
+
+# steepness
+beanplot(refmodel.summary$Rcrowd.steepness, refmodel.summary$Rdisp.steepness,
+         main="Steepness", 
+         ylab="Dij", las=1, log = "",
+         ylim = c(min(observed.summary$Obcrowd.steepness-0.1), 
+        max(refmodel.summary$Rdisp.steepness,observed.summary$Obdisp.steepness+0.1)),
+         xlab = "", names = c("crowds", "displacements"),
+         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
+         border = 'NA', 
+         ll = 0.1, beanlinewd = 0.1)
+points(1,observed.summary$Obcrowd.steepness, col="#8da0cb", pch=7) # crowds
+points(2,observed.summary$Obdisp.steepness, col="#fc8d62", pch=7) # displacements
+abline(h=observed.summary$ObtotalCD.steepness, col="red")  # add line estimate of totalDC 
+
+
+# sparseness
+beanplot(refmodel.summary$Rcrowd.prunk.pu, refmodel.summary$Rdisp.prunk.pu,
+         main ="Sparseness", 
+         ylab="Sparseness", 
+         ylim=c(min(observed.summary$Obdisp.prunk.pu-0.1), 
+                max(refmodel.summary$Rcrowd.prunk.pu,observed.summary$Obcrowd.prunk.pu+0.1)),
+         las=1, xlab = "", names = c("crowds", "displacements"),
+         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
+         border = 'NA', 
+         ll = 0.05, beanlinewd = 0.1)
+points(1,observed.summary$Obcrowd.prunk.pu, col="#8da0cb" , pch=7) # crowds
+points(2,observed.summary$Obdisp.prunk.pu, col="#fc8d62", pch=7) # displacements
+abline(h=observed.summary$ObtotalCD.steepness, col="red")  # add line estimate of totalDC 
+
+
+
+# transitivity
+beanplot(refmodel.summary$Rcrowd.transi.ttri, refmodel.summary$Rdisp.transi.ttri,
+         main ="Transitivity", 
+         ylab="Transitivity",
+         ylim=c(min(refmodel.summary$Rdisp.transi.ttri-0.1), 
+                max(refmodel.summary$Rdisp.transi.ttri,refmodel.summary$Rdisp.transi.ttri+0.1)),
+         las=1, xlab = "", names = c("crowds", "displacements"),
+         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
+         border = 'NA', 
+         ll = 0.1, beanlinewd = 0.1)
+points(1,observed.summary$Obcrowd.transi.ttri, col= "#8da0cb" , pch=7) # crowds
+points(2,observed.summary$Obdisp.transi.ttri, col= "#fc8d62", pch=7) # displacements
+abline(h=observed.summary$ObtotalCD.transi.ttri, col="red") # add line estimate of totalDC 
 
 ```
 
