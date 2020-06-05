@@ -119,6 +119,8 @@ obs.cor <- cor(observedXdyad.alldyads$observed.crowd, observedXdyad.alldyads$obs
   #summarize basic info
   n.Obcrowd <- sum(observedXdyad.alldyads$observed.crowd)
   n.Obdisplace <- sum(observedXdyad.alldyads$observed.displace)
+  n.totalCD <- sum(observedXdyad.alldyads$observed.displace+ observedXdyad.alldyads$observed.crowd)
+  
   prop.Obdisplace <- n.Obdisplace/(n.Obdisplace+n.Obcrowd)
   prop.Obcrowd <- n.Obcrowd/(n.Obdisplace+n.Obcrowd)
 
@@ -130,13 +132,15 @@ obs.cor <- cor(observedXdyad.alldyads$observed.crowd, observedXdyad.alldyads$obs
 
   Obcrowd.density <- n.Obcrowd.dyads/length(dyad.list$dyadID)
   Obdisplace.density <- n.Obdisplace.dyads/length(dyad.list$dyadID)
+  ObtotalCD.density <- (n.Obcrowd.dyads + n.Obdisplace.dyads)/length(dyad.list$dyadID)
   
   # Pool basic summaries
   Obcd.basic <- cbind.data.frame(obs.cor, 
                                 n.Obcrowd, n.Obdisplace,
                                 prop.Obcrowd, prop.Obdisplace, 
                                 n.Obcrowd.dyads, n.Obdisplace.dyads,
-                                Obcrowd.density, Obdisplace.density
+                                Obcrowd.density, Obdisplace.density, 
+                                n.totalCD,ObtotalCD.density
                                 )
   
   # START NETWORK ANALYSES
@@ -298,6 +302,7 @@ t(observed.summary)
 #WRITE DATA (change with your own location)
 dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behaviors/pool-separate-behaviors/"
 #write.csv(observed.summary, file = paste(dfile.loc, "EXPLORE-SUMM.observed.csv", sep=""))	
+write.csv(observed.summary, file = "EXPLORE-SUMM.observed.csv")
 
 
 ```
