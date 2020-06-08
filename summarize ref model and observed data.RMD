@@ -280,10 +280,10 @@ obs.cor <- cor(observedXdyad.alldyads$observed.crowd, observedXdyad.alldyads$obs
   ObtotalCD.hier <- cbind.data.frame(
                                   ObtotalCD.linearity, 
                                   ObtotalCD.steepness, 
-                                  ObtotalCD.focus, ObtotalCD.position,
                                   ObtotalCD.prunk.pu, ObtotalCD.prunk.dyads,
                                   ObtotalCD.transi.Pt, ObtotalCD.transi.ttri,
-                                  ObtotalCD.focus, ObtotalCD.position
+                                  ObtotalCD.focus, ObtotalCD.position,
+                                  Obstrategy.totalCD
                                   )
     
 # POOL ALL DATA
