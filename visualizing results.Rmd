@@ -17,6 +17,7 @@ Comparison of real vs randomized data in 4-6 plots:
 ```{r setup, include=FALSE}
 library(beanplot)
 library(scales)
+library(ggplot2)
 ```
 
 # Import data
@@ -241,6 +242,44 @@ points(2,observed.summary$Obdisp.transi.ttri, col= "#fc8d62", pch=7) # displacem
 abline(h=observed.summary$ObtotalCD.transi.ttri, col="red") # add line estimate of totalDC 
 
 ```
+
+# aggression strategies
+summary of number of runs per strategy and plot those vs observed value. 
+```{r}
+# aggression strategies
+
+ref.model.strategies <- read.csv("EXPLORE_SUMM.refmodel.strategies.csv")
+str(ref.model.strategies)
+
+# strategies per random run
+strategies.Rcrowd<-group_by(ref.model.strategies, strategy.Rcrowd) %>%
+  summarise(n=n()) %>% 
+  mutate(behavior="crowd") %>%
+  rename(strategy=strategy.Rcrowd) %>%
+  add_row(strategy="close.competitor",n= 0, behavior="crowd")
+strategies.Rdisp<-group_by(ref.model.strategies, strategy.Rdisp) %>%
+  summarise(n=n()) %>% 
+  mutate(behavior="displace") %>%
+  rename(strategy=strategy.Rdisp) %>%
+  add_row(strategy="close.competitor",n= 0, behavior="displace")
+strategies<-rbind(strategies.Rcrowd, strategies.Rdisp)
+
+# observed strategies
+observed.summary$strategy.Obcrowd # "downward.heuristic"
+observed.summary$strategy.Obdisp  # "pure bully"
+observed.summary$Obstrategy.totalCD # "downward.heuristic"
+
+ggplot(strategies, aes(x=strategy, y=n, fill=behavior)) +
+  geom_col(aes(group= behavior),  position=position_dodge()) +
+  theme_classic() +
+  scale_fill_manual(values=c(alpha("#8da0cb", 0.6),alpha("#fc8d62", 0.6)))  +    
+  annotate("point", 3.25,30, col="#fc8d62", pch=7) +
+  annotate("point",1.75,30, col="#8da0cb", pch=7) +
+  annotate("point",2,30, col="red", pch=7)
+
+```
+
+
 
 # sessioninfo
 ```{r}
