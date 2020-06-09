@@ -52,18 +52,18 @@ dyad.list$dyadID <- paste(dyad.list$actor, dyad.list$subject, sep="-")
 # find proportion of random corr strengths less than the real corr strength
 # you can use this as a kind of p value
 # pval should be >0.975 for two-tailed test, >0.95 for one-tailed test for something significantly different from the random values in the reference model
-prop.val <- nrow(COR.random[COR.random$COR<COR.real, ])/nrow(COR.random) 
+prop.val <- nrow(COR.refmodel[COR.refmodel$COR<COR.observed, ])/nrow(COR.refmodel) 
 pval <- ifelse(prop.val>0.5, 1-prop.val, prop.val)
 
-d <- density(COR.random$COR) 
+d <- density(COR.refmodel$COR) 
             
 plot(d, main=paste0("Distribution of displacement and crowd correlations, p-val=", pval),
      xlab="Correlation strength", xlim=c(0, 1), las=1)
 
 polygon(d, col="gray", border="black")
 
-abline(v=COR.real, col="red")
-abline(v=COR.random.mean, col="black")
+abline(v=COR.observed, col="red")
+abline(v=COR.refmodel.mean, col="black")
 #text(x=0.15, y=2, paste0("p-value = ", pval))
 ```
 
