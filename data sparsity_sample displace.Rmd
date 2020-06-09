@@ -60,6 +60,8 @@ length(sample.aggD$rowID)
 
 ```{r}
 #finds n disps per actor by date for trimmed data
+RNGkind(sample.kind="default") 
+set.seed(42)
 sample.aggDXday <- sample.aggD %>% 
   group_by(actor, subject, date) %>% 
   summarise(n=n())  %>%
