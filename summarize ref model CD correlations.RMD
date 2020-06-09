@@ -49,6 +49,8 @@ par(mfrow=c(1,1))
 
 run.s <- unique(ref.model$runID)
 
+replicates <- 100
+
 for(run in 1:replicates){
   run.code <- run.s[run]
   run.data <- subset(ref.model, runID==run.code)

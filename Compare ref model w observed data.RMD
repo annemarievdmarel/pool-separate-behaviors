@@ -9,7 +9,7 @@ output: html_document
 
 ```{r}
 #load the summaries of the explore data
-EXPLORE_refmodel_summaries <- read.csv(file="EXPLORE_refmodel_summaries.csv")
+EXPLORE_refmodel_summaries <- read.csv(file="EXPLORE-SUMM.refmodel.csv")
 head(EXPLORE_refmodel_summaries)
 
 EXPLORE_refmodelCOR_CxD <- read.csv(file="EXPLORE_refmodelCOR_CxD.csv")
@@ -22,7 +22,7 @@ head(EXPLORE_refmodelCOR_CxD)
 #ref.model <- EXPLORE_refmodeldata #update name here when changing to ANALYZE ref model
 
 #strategies summary
-EXPLORE_SUMM.refmodel.strategies <- read.csv(file="EXPLORE_SUMM.refmodel.strategiesread.csv")
+EXPLORE_SUMM.refmodel.strategies <- read.csv(file="EXPLORE_SUMM.refmodel.strategies.csv")
 ```
 
 ## Helper functions & data
