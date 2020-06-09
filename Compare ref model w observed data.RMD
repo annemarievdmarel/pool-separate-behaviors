@@ -74,16 +74,16 @@ abline(v=COR.refmodel.mean, col="black")
 
 ```{r}
 #find all strategy types
-unique(ref.model.strategies$strategy.Rcrowd)
-unique(ref.model.strategies$strategy.Rdisp)
+unique(EXPLORE_SUMM.refmodel.strategies$strategy.Rcrowd)
+unique(EXPLORE_SUMM.refmodel.strategies$strategy.Rdisp)
 
 #summarize
 #find number of runs with each strategy
-refstrats.crowd <- ref.model.strategies %>% 
+refstrats.crowd <- EXPLORE_SUMM.refmodel.strategies %>% 
                   dplyr::group_by(strategy.Rcrowd) %>% 
                   dplyr::tally()
 
-refstrats.disp <- ref.model.strategies %>% 
+refstrats.disp <- EXPLORE_SUMM.refmodel.strategies %>% 
                   dplyr::group_by(strategy.Rdisp) %>% 
                   dplyr::tally()
 
@@ -94,7 +94,7 @@ refstratsXtype <- merge(refstrats.crowd, refstrats.disp, by="strategy")
 refstratsXtype
 
 #group by both types: when crowd returns one strategy, how often is it the same as disp?
-refstrats <- ref.model.strategies %>% 
+refstrats <- EXPLORE_SUMM.refmodel.strategies %>% 
                   dplyr::group_by(strategy.Rcrowd, strategy.Rdisp) %>% 
                   dplyr::tally()
 
