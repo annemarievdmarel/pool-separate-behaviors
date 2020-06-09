@@ -28,6 +28,14 @@ observed <- EXPLORE_perpre_aggCD
 head(observed)
 
 observedXdyad <- observed # observed aggression by dyad
+observedXdyad <- observedXdyad %>% 
+                  dplyr::group_by(actor, subject) %>% 
+                  dplyr::summarise(observed.crowd=sum(crowd),
+                          observed.displace=sum(displace),
+                          observed.totalCD=sum(total.DC)) 
+observedXdyad <- as.data.frame(observedXdyad)   
+observedXdyad$actor <- as.character(observedXdyad$actor)
+observedXdyad$subject <- as.character(observedXdyad$subject)
 str(observedXdyad)
 
 
