@@ -51,7 +51,10 @@ To get the same sparse dataset as for crowds, we randomly select the number of d
 ```{r}
 sum(observed$crowd)  # 56 crowds
 
+RNGkind(sample.kind="default") 
+set.seed(42)
 sample.aggD <- sample_n(aggD.long, size = 56, replace = FALSE)
+
 head(sample.aggD)
 length(sample.aggD$rowID)
 ```
@@ -60,8 +63,6 @@ length(sample.aggD$rowID)
 
 ```{r}
 #finds n disps per actor by date for trimmed data
-RNGkind(sample.kind="default") 
-set.seed(42)
 sample.aggDXday <- sample.aggD %>% 
   group_by(actor, subject, date) %>% 
   summarise(n=n())  %>%
