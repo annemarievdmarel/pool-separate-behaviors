@@ -14,9 +14,10 @@ library(stringr)
 
 
 #Import data & process
-```{r}
-# import observed data
+As we analyse our data with two different datasets - one full with unequal number of observations for the behaviors (observed dataset) and the other with equal number of observations per behavior (sampled dataset) - we decided to keep the scripts the same but only change which dataset we import and export.
 
+First chunck for observed dataset
+```{r}
 # TO TEST/EXPLORE scripts/analyses:
 EXPLORE_perpre_aggCD <- read.csv(file="EXPLORE-perpre-aggCD.csv") 
 observed <- EXPLORE_perpre_aggCD %>%
@@ -31,6 +32,23 @@ head(observed)
 str(observed)
 ```
 
+This chunk for the sampled dataset 
+```{r}
+# TO TEST/EXPLORE scripts/analyses:
+EXPLORE_sample_aggCD <- read.csv(file="EXPLORE-sample-aggCD.csv") 
+observed <- EXPLORE_sample_aggCD %>%
+  rename(rowID=X) # only necessary if the first column is an X
+
+# FINAL ANALYSIS:
+#ANALYZE_sample_aggCD <- read.csv(file="ANALYZE-sample-aggCD.csv") # final analyses
+#agg.data <- subset(ANALYZE_sample_aggDC, days=="last") #this is the ANALYZE data for the actual analyses in the final paper
+#observed <- agg.data
+
+head(observed)
+str(observed)
+```
+
+
 
 #Check
 ```{r}
@@ -40,7 +58,7 @@ unique(observed$date)
 
 sum(observed$crowd)
 sum(observed$displace)
-sum(observed$total.DC)
+sum(observed$total.CD)
 
 ```
 
@@ -175,7 +193,8 @@ start.time = Sys.time()
                         break
                 } #if there is at least 1 occurrence of a complete match between random.crowd columns from the two runs, then break the entire loop - no more comparisons will be made. Look at end of empdf to see which runs had a complete match
                 
-        } #returns empdf with number of matches for each pair of runs being compared
+        } #turns empdf with number of matches for each pair of runs being compared
+head(empdf)
 
 end.time = Sys.time()
 
@@ -192,31 +211,35 @@ end.time - start.time
 
 
 ## SAVE RUN OUTPUT FOR FINAL ANALYSIS
-Check refmodel files to see whether set.seed works
+
+** Note: save the refmodel with the correct name (observed vs sampled data) 
+
 ```{r}
-refmodeldata.Sanjay <- read.csv(file="EXPLORE-refmodeldata-SP-3June.csv") %>% select(-X)  # file from Sanjay's Mac
+# WRITE DATA for full observed data
+write.csv(ref.model, file = "EXPLORE-refmodeldata.csv")
+```
 
-refmodel.AM <- read.csv(file="EXPLORE-refmodeldata-2June.csv") %>% select(-X)  # file from local environment on Windows laptop
-head(ref.model) # newly generated reference model
+```{r}
+# write data for sampled data
+write.csv(ref.model, file = "EXPLORE-sample-refmodeldata.csv")
+```
 
-setdiff(refmodeldata.Sanjay, ref.model) 
-setdiff(refmodel.AM, ref.model)
+
+# Check refmodel files to see whether set.seed works
+```{r}
+# file from github
+refmodel <- read.csv(file="EXPLORE-refmodeldata.csv") %>% select(-X)  
+samplerefmodel <- read.csv(file="EXPLORE-sample-refmodeldata.csv") %>% select(-X)  
+
+# newly generated reference model
+head(ref.model) 
+
+setdiff(refmodel, ref.model) # observed data
+setdiff(samplerefmodel, ref.model) # sampled data
 
 ```
 
 Files are the same so set.seed did work. 
-
-** Note: change the file path to save to another location
-
-```{r}
-#WRITE DATA 
-dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behaviors/poolVSseparate/"
-#dfile.loc <- "C:/Users/avdma/OneDrive - University of Cincinnati/Documents/Postdoc_UC/Hobson lab/pool-separate-behaviors/"
-#dfile.loc <- "YOUR LOCATION"
-
-write.csv(ref.model, file = paste(dfile.loc, "EXPLORE-refmodeldata.csv", sep=""))	
-write.csv(ref.model, file = "EXPLORE-refmodeldata.csv")
-```
 
 # session info 
 ```{r}
