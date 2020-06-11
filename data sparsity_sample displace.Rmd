@@ -96,7 +96,7 @@ cast number of aggressions per day by behavior type
 sample.obs.CD.wide <- sample.obs.CD %>% pivot_wider(names_from = "behavior", 
   values_from = "n",
   values_fill = list(n = 0)) %>%
-  mutate(total.CD=displace + crowd)
+  mutate(total.DC=displace + crowd)
 head(sample.obs.CD.wide)
 ```
 
