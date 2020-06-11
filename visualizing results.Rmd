@@ -21,17 +21,27 @@ library(ggplot2)
 ```
 
 # Import data
-
+OBSERVED
 ```{r}
 ref.model.summaries<- read.csv("EXPLORE-SUMM.refmodel.csv")
 observed.summary <- read.csv("EXPLORE-SUMM.observed.csv")
 ```
 
+SAMPLED
+```{r}
+refmodel.summary<- read.csv("EXPLORE-SUMM.sampled.refmodel.csv")
+head(refmodel.summary)
+observed.summary <- read.csv("EXPLORE-SUMM.sampled.csv")
+head(observed.summary)
+
+```
+
+
 ## Including Plots
 # correlation
 ```{r pressure, echo=FALSE}
 # correlation
-beanplot(refmodel.summary$Rcor,  
+beanplot(refmodel.summary$run.cor,  
          main="Distribution of correlations", 
          ylab="Correlation strength", 
          ylim=c(0, 1),
@@ -39,23 +49,6 @@ beanplot(refmodel.summary$Rcor,
 points(1,observed.summary$obs.cor, col="red", pch=7)
 
 ```
-I added correlation to the refmodel.summaries dataset in our script. if we decide not to do that we have to load the correlation dataframe separately: 
-```{r}
-#reference model correlations of crowd vs displacements
-EXPLORE_refmodelCOR_CxD <- read.csv(file="EXPLORE_refmodelCOR_CxD.csv")
-correlationsCxD<-EXPLORE_refmodelCOR_CxD 
-head(correlationsCxD)
-
-beanplot(correlationsCxD$COR,  
-         main="Distribution of correlations", 
-         ylab="Correlation strength", 
-         ylim=c(0, 1),
-         las=1, col = alpha("black", 0.6)) 
-points(1,observed.summary$obs.cor, col="#fc8d62", pch=7)
-
-```
-
-
 
 
 # Proportion of number of interactions by total observed
@@ -88,7 +81,7 @@ beanplot(refmodel.summary$Rcrowd.density, refmodel.summary$Rdisplace.density,
          ll = 0.05, beanlinewd = 0.1)
 points(1,observed.summary$Obcrowd.density, col="#8da0cb" , pch=7) # crowds
 points(2,observed.summary$Obdisplace.density, col="#fc8d62", pch=7) # displacements
- 
+abline(h=observed.summary$ObtotalCD.density, col="red")  # add line estimate of totalDC 
 ```
 # Linearity
 ```{r, echo=FALSE}
@@ -138,7 +131,7 @@ beanplot(refmodel.summary$Rcrowd.prunk.pu, refmodel.summary$Rdisp.prunk.pu,
          ll = 0.05, beanlinewd = 0.1)
 points(1,observed.summary$Obcrowd.prunk.pu, col="#8da0cb" , pch=7) # crowds
 points(2,observed.summary$Obdisp.prunk.pu, col="#fc8d62", pch=7) # displacements
-abline(h=observed.summary$ObtotalCD.steepness, col="red")  # add line estimate of totalDC 
+abline(h=observed.summary$ObtotalCD.prunk.pu, col="red")  # add line estimate of totalDC 
 ```
 
 
@@ -223,7 +216,7 @@ beanplot(refmodel.summary$Rcrowd.prunk.pu, refmodel.summary$Rdisp.prunk.pu,
          ll = 0.05, beanlinewd = 0.1)
 points(1,observed.summary$Obcrowd.prunk.pu, col="#8da0cb" , pch=7) # crowds
 points(2,observed.summary$Obdisp.prunk.pu, col="#fc8d62", pch=7) # displacements
-abline(h=observed.summary$ObtotalCD.steepness, col="red")  # add line estimate of totalDC 
+abline(h=observed.summary$ObtotalCD.prunk.pu, col="red")  # add line estimate of totalDC 
 
 
 
@@ -244,11 +237,14 @@ abline(h=observed.summary$ObtotalCD.transi.ttri, col="red") # add line estimate 
 ```
 
 # aggression strategies
-summary of number of runs per strategy and plot those vs observed value. 
+summary of number of runs per strategy and plot those vs observed value.
+
+OBSERVED 
 ```{r}
 # aggression strategies
 
-ref.model.strategies <- read.csv("EXPLORE_SUMM.refmodel.strategies.csv")
+ref.model.strategies <- read.csv("EXPLORE_SUMM.refmodel.strategies.csv") # observed
+ref.model.strategies <- read.csv("EXPLORE_SUMM.sample.refmodel.strategies.csv") # sampled
 str(ref.model.strategies)
 
 # strategies per random run
@@ -290,9 +286,53 @@ ggplot(strategies, aes(x=behavior, y=n, fill=strategy)) +
 ```
 the totalCD point can be improved. I placed it between the 2 behaviors
 
+SAMPLED
+```{r}
+# aggression strategies
+ref.model.strategies <- read.csv("EXPLORE_SUMM.sample.refmodel.strategies.csv") # sampled
+str(ref.model.strategies)
+
+# strategies per random run
+strategies.Rcrowd<-group_by(ref.model.strategies, strategy.Rcrowd) %>%
+  summarise(n=n()) %>% 
+  mutate(behavior="crowd") %>%
+  rename(strategy=strategy.Rcrowd) %>%
+  add_row(strategy="close.competitor",n= 0, behavior="crowd")
+strategies.Rdisp<-group_by(ref.model.strategies, strategy.Rdisp) %>%
+  summarise(n=n()) %>% 
+  mutate(behavior="displace") %>%
+  rename(strategy=strategy.Rdisp) %>%
+  add_row(strategy="close.competitor",n= 0, behavior="displace")
+strategies<-rbind(strategies.Rcrowd, strategies.Rdisp)
+
+# observed strategies
+observed.summary$strategy.Obcrowd # "downward.heuristic"
+observed.summary$strategy.Obdisp  # "downward.heuristic"
+observed.summary$Obstrategy.totalCD # "downward.heuristic"
+
+strategies$strategy<-factor(strategies$strategy, levels =c("downward.heuristic","close.competitor","pure.bully", "pure.undefined") , labels = c("Downward heuristic", "Close competitors", "Bullying", "Undefined") )
+
+ggplot(strategies, aes(x=strategy, y=n, fill=behavior)) +
+  geom_col(aes(group= behavior),  position=position_dodge()) +
+  theme_classic() +
+  scale_fill_manual(values=c(alpha("#8da0cb", 0.6),alpha("#fc8d62", 0.6)))  +    
+  annotate("point", 3.25,30, col="red", pch=5) +
+  annotate("point",0.75,30, col="blue", pch=4) +
+  annotate("point",1,30, col="black", pch=7)
+
+ggplot(strategies, aes(x=behavior, y=n, fill=strategy)) +
+  geom_col(aes(group= strategy)) +
+  theme_classic() +
+  labs(y="percentage") +
+  scale_fill_manual(values=c(alpha("lightgrey", 0.4),alpha("red", 0.4), alpha("blue", 0.4), alpha("black", 0.6)))  +    
+  annotate("point", 1,25, col="white", pch=23, cex=4, bg="#fc8d62") + # displace  
+  annotate("point",1,75, col="white", pch=23, bg="#8da0cb", cex=4) + # crowd
+  annotate("point",1,50, col="white", pch=23,bg="black", cex=4)     # total DC
+```
+
+
 
 # sessioninfo
 ```{r}
 sessionInfo()
 ```
-
