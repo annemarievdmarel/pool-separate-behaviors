@@ -13,13 +13,21 @@ library(plyr)
 
 
 #Import data & process
-
+update names and files here when changing to ANALYZE ref model
 ```{r}
-#load the reference model data
+#load the reference model data for observed dataset
 EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv")
 head(EXPLORE_refmodeldata)
 
-ref.model <- EXPLORE_refmodeldata #update name here when changing to ANALYZE ref model
+ref.model <- EXPLORE_refmodeldata 
+```
+
+
+```{r}
+# load the reference model data for the sampled dataset
+EXPLORE_sample_refmodel <- read.csv(file="EXPLORE-sample-refmodeldata.csv")
+ref.model <- EXPLORE_sample_refmodel
+
 ```
 
 
@@ -59,12 +67,19 @@ for(run in 1:replicates){
   with (run.data, abline(lm(random.crowd~random.displace), col="grey")) # regression line (y~x)
 }
 
-#WRITE DATA 
-dfile.loc <- "C:/Users/Liz/Dropbox/A ACTIVE MSs/2020-05 Pool vs separate behaviors/pool-separate-behaviors/"
-#dfile.loc <- YOUR LOCATION HERE
-
-#write.csv(COR.random, file = paste(dfile.loc, "EXPLORE_refmodelCOR_CxD.csv", sep=""))	
-
-
 ```
+
+
+## Export data
+```{r}
+# WRITE DATA  for OBSERVED data
+write.csv(COR.refmodel, file = "EXPLORE_refmodelCOR_CxD.csv")	
+```
+
+```{r}
+# WRITE DATA  for SAMPLED data
+head(COR.refmodel)
+write.csv(COR.refmodel, file = "EXPLORE_sample_refmodelCOR.csv")	
+```
+
 
