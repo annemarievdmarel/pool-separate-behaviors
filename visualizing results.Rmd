@@ -18,13 +18,16 @@ Comparison of real vs randomized data in 4-6 plots:
 library(beanplot)
 library(scales)
 library(ggplot2)
+detach(package:plyr)
 ```
 
 # Import data
 OBSERVED
 ```{r}
-ref.model.summaries<- read.csv("EXPLORE-SUMM.refmodel.csv")
+refmodel.summary<- read.csv("EXPLORE-SUMM.refmodel.csv")
+head(refmodel.summary)
 observed.summary <- read.csv("EXPLORE-SUMM.observed.csv")
+head(observed.summary)
 ```
 
 SAMPLED
@@ -244,12 +247,11 @@ OBSERVED
 # aggression strategies
 
 ref.model.strategies <- read.csv("EXPLORE_SUMM.refmodel.strategies.csv") # observed
-ref.model.strategies <- read.csv("EXPLORE_SUMM.sample.refmodel.strategies.csv") # sampled
 str(ref.model.strategies)
 
 # strategies per random run
 strategies.Rcrowd<-group_by(ref.model.strategies, strategy.Rcrowd) %>%
-  summarise(n=n()) %>% 
+  tally() %>% 
   mutate(behavior="crowd") %>%
   rename(strategy=strategy.Rcrowd) %>%
   add_row(strategy="close.competitor",n= 0, behavior="crowd")
@@ -280,9 +282,9 @@ ggplot(strategies, aes(x=behavior, y=n, fill=strategy)) +
   theme_classic() +
   labs(y="percentage") +
   scale_fill_manual(values=c(alpha("lightgrey", 0.4),alpha("red", 0.4), alpha("blue", 0.4), alpha("black", 0.6)))  +    
-  annotate("point", 2,25, col="white", pch=23, cex=4, bg="blue") + # displace  
-  annotate("point",1,75, col="white", pch=23, bg="lightgrey", cex=4) + # crowd
-  annotate("point",1.5,55, col="white", pch=23,bg="lightgrey", cex=4)     # total DC
+  annotate("point", 2,25, col="white", pch=23, cex=4, bg="#fc8d62") + # displace  
+  annotate("point",1,75, col="white", pch=23, bg="#8da0cb", cex=4) + # crowd
+  annotate("point",1.5,55, col="white", pch=23,bg="black", cex=4)     # total DC
 ```
 the totalCD point can be improved. I placed it between the 2 behaviors
 
