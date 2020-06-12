@@ -51,7 +51,7 @@ ref.model <- EXPLORE_refmodeldata #update name here when changing to ANALYZE ref
 
 
 #reference model correlations of crowd vs displacements
-EXPLORE_refmodelCOR_CxD <- read.csv(file="EXPLORE_refmodelCOR_CxD.csv") #head(EXPLORE_refmodelCOR_CxD)
+EXPLORE_refmodelCOR_CxD <- read.csv(file="EXPLORE_refmodelCOR_CxD.csv") %>% select(-X) #head(EXPLORE_refmodelCOR_CxD)
 COR.refmodel <- EXPLORE_refmodelCOR_CxD
 ```
 
@@ -544,7 +544,7 @@ head(ref.model.summaries)
 
 OBSERVED
 ```{r}
-write.csv(ref.model.summaries, "EXPLORE-SUMM.refmodel.csv", sep="")
+write.csv(ref.model.summaries, "EXPLORE-SUMM.refmodel.csv")
 ```
 
 SAMPLED
