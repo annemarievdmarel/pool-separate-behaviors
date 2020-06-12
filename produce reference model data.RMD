@@ -58,7 +58,7 @@ unique(observed$date)
 
 sum(observed$crowd)
 sum(observed$displace)
-sum(observed$total.CD)
+sum(observed$total.DC)
 
 ```
 
@@ -193,8 +193,8 @@ start.time = Sys.time()
                         break
                 } #if there is at least 1 occurrence of a complete match between random.crowd columns from the two runs, then break the entire loop - no more comparisons will be made. Look at end of empdf to see which runs had a complete match
                 
-        } #turns empdf with number of matches for each pair of runs being compared
-head(empdf)
+        } #returns empdf with number of matches for each pair of runs being compared
+tail(empdf)
 
 end.time = Sys.time()
 
