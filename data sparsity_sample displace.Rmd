@@ -47,43 +47,151 @@ sum(observed$displace)
 ```
 
 ## sample displacements
-To get the same sparse dataset as for crowds, we randomly select the number of displacements
+To get the same sparse dataset as for crowds, we randomly select the number of displacements using 100 randomizations. 
 ```{r}
-sum(observed$crowd)  # 56 crowds
+# check how many crowds we have
+n.obs.crowd<-sum(observed$crowd)  # 56 crowds
 
-RNGkind(sample.kind="default") 
-set.seed(42)
-sample.aggD <- sample_n(aggD.long, size = 56, replace = FALSE)
+head(aggD.long)
 
-head(sample.aggD)
-length(sample.aggD$rowID)
+replicates <- 100
+
+run=2
+
+#make empty dataframe to write loop results into
+ref.model.sparse <- data.frame(actor=character(),
+                       subject=character(),
+                       date=character(),
+                       period=character())
+
+
+for (run in 1:replicates) {
+  r.seed <- run
+  RNGkind(sample.kind="default") 
+  set.seed(r.seed)
+  sample.aggD <- sample_n(aggD.long, size = n.obs.crowd, replace = FALSE)
+  
+  sample.aggD$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.aggD$actor))  #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+  
+  ref.data <- as.data.frame(ref.data)
+  ref.model.sparse <- rbind.data.frame(ref.model.sparse, sample.aggD)
+  
+  head(ref.model.sparse)
+
+#finds n disps per actor by date for trimmed data
+sample.aggDXday <- ref.model.sparse %>% 
+  group_by(runID, actor, subject) %>% 
+  summarise(n=n())  %>%
+  mutate(behavior="displace") %>% 
+  ungroup()
+sample.aggDXday<-as.data.frame(sample.aggDXday)
+#head(sample.aggDXday)
+#sum(sample.aggDXday$n)
+#str(sample.aggDXday)
+
+
+#### duplicate dataframe of crowds 100 times 
+
+obs.crowd<- observed %>%
+  select(actor, subject,crowd) %>%
+  rename(n=crowd) %>%
+  mutate(behavior="crowd") %>%
+  filter(n!=0) %>%
+  ungroup() # %>% slice(rep(row_number(), 100)) 
+
+
+datalist = list()
+
+for (run in 1:replicates) {
+    dat <- obs.crowd
+    #dat$runID <- run  # to keep track of the iteration number --> would be great to get the same format as with the displacements
+    datalist[[run]] <- dat # add it to your list
+   
+}
+
+obs.crowd.rep <- do.call(rbind, datalist)
+obs.crowd.rep$runID<-rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.aggD$actor)) # I can't seem to get this to work
+
+### combine crowds and displacements per runID
+sample.obs.CD<-bind_rows(obs.crowd.rep, sample.aggDXday) 
+
+}
+  
+head(sample.obs.CD)
+
+## from long to wide format (cast number of aggressions per day by behavior type)
+
+sample.obs.CD.wide <- sample.obs.CD %>% 
+  pivot_wider(names_from = "behavior", 
+  values_from = "n",
+  values_fill = list(n = 0)) %>%
+  mutate(total.DC=displace + crowd)
+head(sample.obs.CD.wide)
+
 ```
+
+## check whether all runs are different
+```{r}
+#check that runs are different from each other
+head(subset(ref.model.sparse, runID=="run001"))
+head(subset(ref.model.sparse, runID=="run002"))
+head(subset(ref.model.sparse, runID=="run003"))
+head(subset(ref.model.sparse, runID=="run011"))
+
+#check that all runs ran as expected
+unique(ref.model.sparse$runID)
+length(unique(ref.model.sparse$runID))
+
+# 
+check.sparse<-select(ref.model.sparse, runID, rowID) %>%
+  dcast(rowID ~ runID)
+  
+```
+
+
+
+I tried to add the next chunks within the loop but I don't know whether that's the best option. 
 
 ## summarize displacements
 
 ```{r}
 #finds n disps per actor by date for trimmed data
-sample.aggDXday <- sample.aggD %>% 
-  group_by(actor, subject, date) %>% 
+sample.aggDXday <- ref.model.sparse %>% 
+  group_by(runID, actor, subject) %>% 
   summarise(n=n())  %>%
-  mutate(behavior="displace")
+  mutate(behavior="displace") %>% 
+  ungroup()
+sample.aggDXday<-as.data.frame(sample.aggDXday)
 head(sample.aggDXday)
 sum(sample.aggDXday$n)
+str(sample.aggDXday)
+
+runIDrep<-sample.aggDXday$runID
 ```
 
 
 ## combine crowd and displace data
+Here I had some difficulty finding the right code to duplicate all rows 100 times. But I think it works now with rep(seq_len). If you find a better way please change. 
+https://stackoverflow.com/questions/8753531/repeat-rows-of-a-data-frame-n-times
 ```{r}
 obs.crowd<- observed %>%
-  select(actor, subject, date, crowd) %>%
+  select(actor, subject,crowd) %>%
   rename(n=crowd) %>%
   mutate(behavior="crowd") %>%
   filter(n!=0) %>%
-  ungroup()
-head(obs.crowd)   
-length(obs.crowd$actor)
+  ungroup() # %>% slice(rep(row_number(), 100)) 
 
-sample.obs.CD<-bind_rows(obs.crowd, sample.aggDXday) 
+head(obs.crowd)
+
+#obs.crowd.rep<-do.call("rbind", replicate(replicates, obs.crowd, simplify = FALSE))
+obs.crowd.rep<-obs.crowd[rep(seq_len(nrow(obs.crowd)), replicates), ] 
+obs.crowd.rep$runID <- rep(seq_len(nrow(obs.crowd)),replicates, paste0("run",str_pad(r.seed, 3, side="left", pad = "0")))
+
+head(obs.crowd.rep)   
+str(obs.crowd.rep)
+
+sample.obs.CD<-bind_rows(obs.crowd.rep, sample.aggDXday) %>%
+  mutate(rowID = 1:n())
 head(sample.obs.CD)
 str(sample.obs.CD)
 
@@ -93,7 +201,8 @@ str(sample.obs.CD)
 cast number of aggressions per day by behavior type
 
 ```{r}
-sample.obs.CD.wide <- sample.obs.CD %>% pivot_wider(names_from = "behavior", 
+sample.obs.CD.wide <- sample.obs.CD %>% 
+  pivot_wider(names_from = "behavior", 
   values_from = "n",
   values_fill = list(n = 0)) %>%
   mutate(total.DC=displace + crowd)
