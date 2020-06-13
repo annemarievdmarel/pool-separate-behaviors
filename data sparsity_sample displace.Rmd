@@ -143,14 +143,15 @@ head(obs.crowd)
 datalist = list()
 
 for (run in 1:replicates) {
+    r.seed <- run
     dat <- obs.crowd
     dat$runID <- run  # to keep track of the iteration number --> would be great to get the same format as with the displacements
+    #dat$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(obs.crowd$actor))
     datalist[[run]] <- dat # add it to your list
    
 }
 
 obs.crowd.rep <- do.call(rbind, datalist)
-#obs.crowd.rep$runID<-rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.aggD$actor)) # I can't seem to get this to work
 ```
 
 ## check wether crowds in all runs are the same by dyad
