@@ -40,10 +40,10 @@ https://stackoverflow.com/questions/2894775/repeat-each-row-of-data-frame-the-nu
 ```{r}
 aggD.long<-select(observed, -crowd, -total.DC) %>%
   slice(rep(seq_len(n()), displace)) %>% 
-  select(-displace)
+  select(-displace, -rowID)
 
 # check # observations correct
-length(aggD.long$rowID)
+length(aggD.long$date)
 sum(observed$displace)
 ```
 
@@ -97,10 +97,7 @@ head(subset(ref.model.sparse, runID=="run011"))
 unique(ref.model.sparse$runID)
 length(unique(ref.model.sparse$runID))
 
-# 
-check.sparse<-select(ref.model.sparse, runID, rowID) %>%
-  dcast(rowID ~ runID)
-  
+
 ```
 
 
@@ -117,6 +114,10 @@ head(sample.aggDXday)
 sum(sample.aggDXday$n)
 str(sample.aggDXday)
 
+# check whether displacements add up to number of crowds per run
+check.displace<-group_by(sample.aggDXday, runID) %>%
+  summarise(n.displace=sum(displace), length(displace))
+View(check.displace)
 ```
 
 ## duplicate dataframe of crowds 100 times 
@@ -131,6 +132,8 @@ I decided to use a loop instead. now I specifically loaded stringr and it worked
 ```{r}
 obs.crowd<- observed %>%
   select(actor, subject,crowd) %>%
+  group_by(actor, subject) %>% 
+  summarise(crowd=sum(crowd)) %>%
   filter(crowd!=0) %>%
   ungroup()
 head(obs.crowd)
@@ -161,6 +164,11 @@ head(subset(obs.crowd.rep , runID=="run011"))
 unique(obs.crowd.rep$runID)
 length(unique(obs.crowd.rep$runID))
 
+# check whether crowds add up to number of crowds per run
+check.crowd<-group_by(obs.crowd.rep, runID) %>%
+  summarise(n.crowd=sum(crowd), length(crowd))
+View(check.crowd)
+
 ```
 
 
@@ -168,16 +176,28 @@ length(unique(obs.crowd.rep$runID))
 ## combine crowd and displace data
 
 ```{r}
-sample.obs.CD<-full_join(obs.crowd.rep, sample.aggDXday, by=c("runID", "actor", "subject")) %>%
+
+# full_join only keeps all rows of x (obs.crowd.rep)
+sample.obs.CD<-dplyr::full_join(obs.crowd.rep, sample.aggDXday, by=c("runID", "actor", "subject")) %>%
   select(runID, everything()) %>%
   replace_na(list(crowd = 0, displace = 0)) %>%
-  mutate(total.DC=displace + crowd)
+  mutate(total.DC=displace + crowd)  
 
+# merge works
+sample.obs.CD<-merge(sample.aggDXday,obs.crowd.rep,  by=c("runID", "actor", "subject"), all.x = TRUE, all.y = TRUE) %>%
+  select(runID, everything()) %>%
+  replace_na(list(crowd = 0, displace = 0)) %>%
+  mutate(total.DC=displace + crowd) 
 
 head(sample.obs.CD)
 str(sample.obs.CD)
 
+# check whether crowds and displacements add up to number of crowds per run
+check.sparse<-group_by(sample.obs.CD, runID) %>%
+  summarise(n.crowds=sum(crowd,  NA, na.rm = TRUE), n.displace=sum(displace, NA, na.rm = TRUE), length(subject))
+View(check.sparse)
 ```
+
 
 
 ## Export file
@@ -249,8 +269,10 @@ sample.aggDXday<-as.data.frame(sample.aggDXday)
 
 obs.crowd<- observed %>%
   select(actor, subject,crowd) %>%
+  group_by(actor, subject) %>% 
+  summarise(crowd=sum(crowd)) %>%
   filter(crowd!=0) %>%
-  ungroup() # %>% slice(rep(row_number(), 100)) 
+  ungroup()
 head(obs.crowd)
 
 datalist = list()
