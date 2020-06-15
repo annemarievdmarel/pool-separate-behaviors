@@ -6,10 +6,11 @@ output: html_document
 ---
 
 Load packages
-```{r}
+```{r, include=FALSE}
 library(dplyr)
 library(tidyr)
 library(reshape2)
+library(stringr)
 ```
 
 ## import data
@@ -72,8 +73,8 @@ for (run in 1:replicates) {
   RNGkind(sample.kind="default") 
   set.seed(r.seed)
   sample.aggD <- sample_n(aggD.long, size = n.obs.crowd, replace = FALSE)
-  sample.aggD$runID <- run 
- # sample.aggD$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.aggD$actor))  #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+  # sample.aggD$runID <- run 
+  sample.aggD$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.aggD$actor))  #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
   
   ref.model.sparse <- rbind.data.frame(ref.model.sparse, sample.aggD)
   
@@ -91,12 +92,6 @@ head(subset(ref.model.sparse, runID=="run001"))
 head(subset(ref.model.sparse, runID=="run002"))
 head(subset(ref.model.sparse, runID=="run003"))
 head(subset(ref.model.sparse, runID=="run011"))
-
-#check that runs are different from each other
-head(subset(ref.model.sparse, runID=="1"))
-head(subset(ref.model.sparse, runID=="2"))
-head(subset(ref.model.sparse, runID=="3"))
-head(subset(ref.model.sparse, runID=="11"))
 
 #check that all runs ran as expected
 unique(ref.model.sparse$runID)
@@ -131,7 +126,7 @@ slice(rep(row_number(), 100))
 obs.crowd.rep<-do.call("rbind", replicate(replicates, obs.crowd, simplify = FALSE))
 obs.crowd.rep<-obs.crowd[rep(seq_len(nrow(obs.crowd)), replicates), ]
 
-I decided to use a loop instead, but runID still didn't work.
+I decided to use a loop instead. now I specifically loaded stringr and it worked.
 
 ```{r}
 obs.crowd<- observed %>%
@@ -145,8 +140,8 @@ datalist = list()
 for (run in 1:replicates) {
     r.seed <- run
     dat <- obs.crowd
-    dat$runID <- run  # to keep track of the iteration number --> would be great to get the same format as with the displacements
-    #dat$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(obs.crowd$actor))
+    #dat$runID <- run  # to keep track of the iteration number (number format)
+    dat$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(obs.crowd$actor)) # #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
     datalist[[run]] <- dat # add it to your list
    
 }
@@ -157,10 +152,10 @@ obs.crowd.rep <- do.call(rbind, datalist)
 ## check wether crowds in all runs are the same by dyad
 ```{r}
 #check that runs are the same from each other
-head(subset(obs.crowd.rep , runID=="1"))
-head(subset(obs.crowd.rep , runID=="2"))
-head(subset(obs.crowd.rep , runID=="3"))
-head(subset(obs.crowd.rep , runID=="11"))
+head(subset(obs.crowd.rep , runID=="run001"))
+head(subset(obs.crowd.rep , runID=="run002"))
+head(subset(obs.crowd.rep , runID=="run003"))
+head(subset(obs.crowd.rep , runID=="run011"))
 
 #check that all runs ran as expected
 unique(obs.crowd.rep$runID)
@@ -229,8 +224,8 @@ for (run in 1:replicates) {
   RNGkind(sample.kind="default") 
   set.seed(r.seed)
   sample.aggD <- sample_n(aggD.long, size = n.obs.crowd, replace = FALSE)
-  sample.aggD$runID <- run 
- # sample.aggD$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.aggD$actor))  #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+  #sample.aggD$runID <- run 
+  sample.aggD$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.aggD$actor))  #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
   
   ref.model.sparse <- rbind.data.frame(ref.model.sparse, sample.aggD)
   
@@ -262,13 +257,12 @@ datalist = list()
 
 for (run in 1:replicates) {
     dat <- obs.crowd
-    dat$runID <- run  # to keep track of the iteration number --> would be great to get the same format as with the displacements
+    dat$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(obs.crowd$actor)) # #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
     datalist[[run]] <- dat # add it to your list
    
 }
 
 obs.crowd.rep <- do.call(rbind, datalist)
-#obs.crowd.rep$runID<-rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.aggD$actor)) # I can't seem to get this to work
 
 ### combine crowds and displacements per runID
   
