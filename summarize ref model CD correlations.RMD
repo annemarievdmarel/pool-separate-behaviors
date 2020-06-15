@@ -11,9 +11,13 @@ output: html_document
 library(plyr)
 ```
 
+#### OBSERVED 
 
-#Import data & process
+
+Import data & process
 update names and files here when changing to ANALYZE ref model
+
+OBSERVED 
 ```{r}
 #load the reference model data for observed dataset
 EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv")
@@ -23,15 +27,7 @@ ref.model <- EXPLORE_refmodeldata
 ```
 
 
-```{r}
-# load the reference model data for the sampled dataset
-EXPLORE_sample_refmodel <- read.csv(file="EXPLORE-sample-refmodeldata.csv")
-ref.model <- EXPLORE_sample_refmodel
-
-```
-
-
-# how are displacements and crowds correlated in the random runs?
+How are displacements and crowds correlated in the random runs?
 NOTE: the package plyr conflicts with the package dplyr causing some weird behavior. Be VERY CAREFUL if you are using both! You can use detach(package:plyr) to de-activate plyr later in a script
 
 ```{r}
@@ -70,11 +66,63 @@ for(run in 1:replicates){
 ```
 
 
-## Export data
+ Export data
 ```{r}
 # WRITE DATA  for OBSERVED data
 write.csv(COR.refmodel, file = "EXPLORE_refmodelCOR_CxD.csv")	
 ```
+
+
+#### SPARSE sampled data
+
+Import data & process
+update names and files here when changing to ANALYZE ref model
+```{r}
+# load the reference model data for the sampled dataset
+EXPLORE_sparse_aggCD <- read.csv(file="EXPLORE-sparse-aggCD.csv") 
+ref.model <- EXPLORE_sparse_aggCD %>%
+  dplyr::rename(rowID=X)
+
+```
+
+
+How are displacements and crowds correlated in the random runs?
+NOTE: the package plyr conflicts with the package dplyr causing some weird behavior. Be VERY CAREFUL if you are using both! You can use detach(package:plyr) to de-activate plyr later in a script
+
+```{r}
+head(ref.model)
+
+require(plyr)
+func <- function(ref.model)
+{
+return(data.frame(COR = cor(ref.model$displace, ref.model$crowd)))
+}
+
+COR.refmodel <- ddply(ref.model, .(runID), func)
+
+#find mean of reference model correlations
+COR.refmodel.mean <- mean(COR.refmodel$COR)
+
+
+#PLOT
+par(mfrow=c(1,1))
+
+run.s <- unique(ref.model$runID)
+
+replicates <- 100
+
+for(run in 1:replicates){
+  run.code <- run.s[run]
+  run.data <- subset(ref.model, runID==run.code)
+  run.corr <- subset(COR.refmodel, runID==run.code)
+  with (run.data, plot (displace, crowd, main=paste0(run.code, " Correlation=", round(run.corr$COR, 2))))
+  with (run.data, abline(lm(crowd~displace), col="grey")) # regression line (y~x)
+}
+
+```
+
+
+Export data
 
 ```{r}
 # WRITE DATA  for SAMPLED data
