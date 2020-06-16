@@ -18,6 +18,23 @@ library(EloRating)
 library(domstruc) #install_github("danm0nster/domstruc")
 ```
 
+Import data
+```{r}
+# TO TEST/EXPLORE scripts/analyses:
+EXPLORE_perpre_aggCD <- read.csv(file="EXPLORE-perpre-aggCD.csv") 
+observed <- EXPLORE_perpre_aggCD %>%
+  rename(rowID=X) # only necessary if the first column is an X
+
+# FINAL ANALYSIS:
+#ANALYZE_per0_aggCD <- read.csv(file="ANALYZE-per0-aggCD.csv") # final analyses
+#agg.data <- subset(ANALYZE_per0_aggDC, days=="last") #this is the ANALYZE data for the actual analyses in the final paper
+#observed <- agg.data
+
+head(observed)
+str(observed)
+```
+
+
 
 #### 1. Create reference model
 To get the same sparse dataset as for crowds, we randomly select the number of displacements using 100 randomizations. We also duplicate our crowd dataframe 100 times.
