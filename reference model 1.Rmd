@@ -1,11 +1,11 @@
 ---
-title: 'Reference model 2: Sparse data'
+title: "Reference model 1"
 author: "Annemarie"
-date: "15/06/2020"
+date: "16/06/2020"
 output: html_document
 ---
 
-Here, we perform all the analyses for reference model 2
+All the analyses for reference model 1, where we randomized number of interactions between interaction types. 
 
 # Load packages
 ```{r, include=FALSE}
@@ -32,6 +32,16 @@ observed <- EXPLORE_perpre_aggCD %>%
 
 head(observed)
 str(observed)
+
+# check 
+unique(observed$actor)
+unique(observed$subject)
+unique(observed$date)
+
+sum(observed$crowd)
+sum(observed$displace)
+sum(observed$total.DC)
+
 ```
 
 
@@ -62,151 +72,171 @@ head(dyad.list)
 
 
 
-#### 1. Create reference model
-To get the same sparse dataset as for crowds, we randomly select the number of displacements using 100 randomizations. We also duplicate our crowd dataframe 100 times.
-
+# Summarize data
+Find total events per dyad (pool across days)
 
 ```{r}
-### displacements in long format
-aggD.long<-select(observed, -crowd, -total.DC) %>%
-  slice(rep(seq_len(n()), displace)) %>% 
-  select(-displace)
+observedXdyad <- observed
+observedXdyad <- observedXdyad %>% 
+                  dplyr::group_by(actor, subject) %>% 
+                  dplyr::summarise(observed.crowd=sum(crowd),
+                          observed.displace=sum(displace),
+                          observed.totalCD=sum(total.DC)) 
+observedXdyad <- as.data.frame(observedXdyad)   
+observedXdyad$actor <- as.character(observedXdyad$actor)
+observedXdyad$subject <- as.character(observedXdyad$subject)
+```
 
-### sample displacements 100x
-# check # observations correct
-length(aggD.long$rowID)
-sum(observed$displace)
 
-# check how many crowds we have
-n.obs.crowd<-sum(observed$crowd)  # 56 crowds
 
-head(aggD.long)
+
+#### 1. Create reference model
+Test real patterns with randomized reference model: Using this reference model, we test whether randomizing the number of interactions across two behavior types results in indistinguishable structural patterns in a reference model compared to the observed data.
+
+Change: Randomly re-allocate aggression to number of displacements and number of crowds by dyad. 
+Preserve: Keep total events (n disp + n crowd) by dyad the same
+
+```{r}
+# Produce reference model
+head(observedXdyad) 
 
 replicates <- 100
 
-run=2
+#run=2
 
-# make empty dataframe to write loop results into
-ref.model.sparse <- data.frame(actor=character(),
+#make empty dataframe to write loop results into
+ref.model <- data.frame(actor=character(),
                        subject=character(),
-                       date=character(),
-                       period=character())
+                       observed.crowd=numeric(),
+                       observed.displace=numeric(),
+                       observed.totalCD=numeric(),
+                       random.crowd=numeric(),
+                       random.displace=numeric())
 
- # loop
+
 for (run in 1:replicates) {
   r.seed <- run
-  RNGkind(sample.kind="default") 
+  RNGkind(sample.kind="default") # code to get same random numbers across operating systems (mac vs windows)
   set.seed(r.seed)
-  sample.aggD <- sample_n(aggD.long, size = n.obs.crowd, replace = FALSE)
-  #sample.aggD$runID <- run 
-  sample.aggD$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.aggD$actor))  #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+  ref.data <- observedXdyad %>%
+                rowwise() %>%
+                dplyr::mutate(random.displace = sample(0:observed.totalCD, 1),
+                              random.crowd = observed.totalCD-random.displace)
   
-  ref.model.sparse <- rbind.data.frame(ref.model.sparse, sample.aggD)
-  
+  ref.data$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(observedXdyad$actor)) #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+    
+  ref.data <- as.data.frame(ref.data)
+  ref.model <- rbind.data.frame(ref.model, ref.data)
 }
-  
-  head(ref.model.sparse)
+
+
+## check ref model output
+
+#check that the randomized interactions vary from the observed interactions
+ref.model$random.displace == ref.model$observed.displace
+ref.model$random.crowd == ref.model$observed.crowd
 
 #check that runs are different from each other
-head(subset(ref.model.sparse, runID=="run001"))
-head(subset(ref.model.sparse, runID=="run002"))
-head(subset(ref.model.sparse, runID=="run003"))
-head(subset(ref.model.sparse, runID=="run011"))
+head(subset(ref.model, runID=="run001"))
+head(subset(ref.model, runID=="run002"))
+head(subset(ref.model, runID=="run003"))
+head(subset(ref.model, runID=="run011"))
 
 #check that all runs ran as expected
-unique(ref.model.sparse$runID)
-length(unique(ref.model.sparse$runID))  
-  
-  
-### summarize displacements by dyad
-# finds n disps per actor by date for trimmed data
-sample.aggDXday <- ref.model.sparse %>% 
-  group_by(runID, actor, subject) %>% 
-  summarise(displace=n())  %>%
- # mutate(behavior="displace") %>% 
-  ungroup()
-sample.aggDXday<-as.data.frame(sample.aggDXday)
-#head(sample.aggDXday)
-#sum(sample.aggDXday$n)
-#str(sample.aggDXday)
+unique(ref.model$runID)
+length(unique(ref.model$runID))
 
 
-# check whether displacements add up to number of crowds per run
-check.displace<-group_by(sample.aggDXday, runID) %>%
-  summarise(n.displace=sum(displace), length(displace))
-View(check.displace)
+######
+        #loop to compare random to observed displacements for each runID
+uniqrun = unique(ref.model$runID)
+randvobs = data.frame(nmatches = numeric(), compar = character())
+nrowxrun = nrow(observedXdyad)
 
-
-### duplicate dataframe of crowds 100 times 
-obs.crowd<- observed %>%
-  select(actor, subject,crowd) %>%
-  group_by(actor, subject) %>% 
-  summarise(crowd=sum(crowd)) %>%
-  filter(crowd!=0) %>%
-  ungroup()
-head(obs.crowd)
-
-datalist = list()
-
-for (run in 1:replicates) {
-    r.seed <- run
-    dat <- obs.crowd
-    #dat$runID <- run  # to keep track of the iteration number (number format)
-    dat$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(obs.crowd$actor)) # #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
-    datalist[[run]] <- dat # add it to your list
-   
+for(i in uniqrun){
+        nmatches = sum(ref.model[ref.model$runID==i,]$random.displace==ref.model[ref.model$runID==i,]$observed.displace)
+        run = i
+        df = as.data.frame(nmatches, run)
+        randvobs=rbind.data.frame(randvobs,df)
+        
+        if(sum(randvobs[,1]==nrowxrun)>0){
+                                break
+                        } #if there is at least 1 occurrence of a complete match between random.displace and observed.displace columns, then break the loop. No more comparisons will be made. Look at end of randvobs to see which runs had a complete match
 }
 
-obs.crowd.rep <- do.call(rbind, datalist)
-
-## check wether crowds in all runs are the same by dyad
-#check that runs are the same from each other
-head(subset(obs.crowd.rep , runID=="run001"))
-head(subset(obs.crowd.rep , runID=="run002"))
-head(subset(obs.crowd.rep , runID=="run003"))
-head(subset(obs.crowd.rep , runID=="run011"))
-
-#check that all runs ran as expected
-unique(obs.crowd.rep$runID)
-length(unique(obs.crowd.rep$runID))
-
-# check whether crowds add up to number of crowds per run
-check.crowd<-group_by(obs.crowd.rep, runID) %>%
-  summarise(n.crowd=sum(crowd), length(crowd))
-View(check.crowd)
+#check
+randvobs
 
 
-### combine crowds and displacements per runID
-  
-sample.obs.CD<-full_join(obs.crowd.rep, sample.aggDXday, by=c("runID", "actor", "subject")) %>%
-  select(runID, everything()) %>%
-  replace_na(list(crowd = 0, displace = 0)) %>%
-  mutate(total.DC=displace + crowd)
-head(sample.obs.CD)
-str(sample.obs.CD)
+        #loop that compares random.crowds from each run to all other runs 
+uniqrun = unique(ref.model$runID)
+empdf = data.frame(nmatches = numeric(), compar = character())
+nrowxrun = nrow(observedXdyad)
 
-# check whether crowds and displacements add up to number of crowds per run
-check.sparse<-group_by(sample.obs.CD, runID) %>%
-  summarise(n.crowds=sum(crowd,  NA, na.rm = TRUE), n.displace=sum(displace, NA, na.rm = TRUE), length(subject))
-View(check.sparse)
+start.time = Sys.time()
+        for (i in uniqrun) {
+                
+                #make uniqrunj (a list of all runIDs that come after i)
+                n= which(!is.na(match(uniqrun,i))) 
+                uniqrunj = uniqrun[n:length(uniqrun)] 
+                uniqrunj = uniqrunj[uniqrunj!=i] 
+                        
+                for (j in uniqrunj) {
+                  
+                        nmatches = sum(ref.model[ref.model$runID==i,]$random.crowd==ref.model[ref.model$runID==j,]$random.crowd)    # gives the number of dyads for which the number of crowds in run i matches that in run j
+                        
+                        compar = paste(i,j, sep="-") #a vector to keep track of which runs are being compared
+                        df = as.data.frame(nmatches,compar)
+                        empdf=rbind.data.frame(empdf,df)
+                  
+                        if(sum(empdf[,1]==nrowxrun)>0){
+                                break
+                        } #if there is at least 1 occurrence of a complete match between random.crowd columns from the two runs, then break the inner loop
+                        
+                }
+        
+                val= as.numeric(substr(i,4,6))
+                if(val %% 10==0) {
+              cat(paste0("iteration: ", val, "\n"))
+                   }# see loop progress at every 10 iterations
+                               
+                if(sum(empdf[,1]==nrowxrun)>0){
+                        break
+                } #if there is at least 1 occurrence of a complete match between random.crowd columns from the two runs, then break the entire loop - no more comparisons will be made. Look at end of empdf to see which runs had a complete match
+                
+        } #returns empdf with number of matches for each pair of runs being compared
+tail(empdf)
 
-# export file
-write.csv(sample.obs.CD, file = "EXPLORE-sparse-aggCD.csv")
+end.time = Sys.time()
+
+#Time to run:
+end.time - start.time
+
+#rm(i,j, df, n, uniqrunj, val)
+#i="run050"
+#j="run007"
+
+####
+
+# WRITE DATA 
+write.csv(ref.model, file = "EXPLORE-refmodeldata.csv")
+
 ```
+
+
 
 Now, we can summarize our results using this reference model.
 
 ```{r}
-# load the reference model data for the sparse dataset
-EXPLORE_sparse_aggCD <- read.csv(file="EXPLORE-sparse-aggCD.csv") 
-ref.model <- EXPLORE_sparse_aggCD %>%
-  dplyr::rename(rowID=X)
+# load the reference model data
+EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv")
+head(EXPLORE_refmodeldata)
+
+ref.model <- EXPLORE_refmodeldata 
 
 ```
 
-
 #### 2. Correlation between crowds and displacements
-
 How are displacements and crowds correlated in the random runs?
 NOTE: the package plyr conflicts with the package dplyr causing some weird behavior. Be VERY CAREFUL if you are using both! You can use detach(package:plyr) to de-activate plyr later in a script
 
@@ -216,10 +246,13 @@ head(ref.model)
 require(plyr)
 func <- function(ref.model)
 {
-return(data.frame(COR = cor(ref.model$displace, ref.model$crowd)))
+return(data.frame(COR = cor(ref.model$random.displace, ref.model$random.crowd)))
 }
 
 COR.refmodel <- ddply(ref.model, .(runID), func)
+
+#find observed correlation between number of crowds and number of displacements
+COR.observed <- cor(ref.model$observed.crowd, ref.model$observed.displace)
 
 #find mean of reference model correlations
 COR.refmodel.mean <- mean(COR.refmodel$COR)
@@ -236,34 +269,90 @@ for(run in 1:replicates){
   run.code <- run.s[run]
   run.data <- subset(ref.model, runID==run.code)
   run.corr <- subset(COR.refmodel, runID==run.code)
-  with (run.data, plot (displace, crowd, main=paste0(run.code, " Correlation=", round(run.corr$COR, 2))))
-  with (run.data, abline(lm(crowd~displace), col="grey")) # regression line (y~x)
+  with (run.data, plot (random.displace, random.crowd, main=paste0(run.code, " Correlation=", round(run.corr$COR, 2))))
+  with (run.data, abline(lm(random.crowd~random.displace), col="grey")) # regression line (y~x)
 }
 
-detach(package:plyr)
+# WRITE DATA
+write.csv(COR.refmodel, file = "EXPLORE_refmodelCOR_CxD.csv")	
 
-# WRITE DATA  for SAMPLED data
-head(COR.refmodel)
-write.csv(COR.refmodel, file = "EXPLORE_sparse_refmodelCOR.csv")	
 ```
-
 
 
 #### 3. summarize ref model
-The summary results of the observed crowds are calculated in the 'reference model 1.rmd' file and saved in "EXPLORE-SUMM.observed.csv"
 
 ```{r}
 # import data (only necessary when you only run this part)
-EXPLORE_sparse_aggCD <- read.csv(file="EXPLORE-sparse-aggCD.csv") # reference model
-ref.model <- EXPLORE_sparse_aggCD %>%
-  dplyr::rename(rowID=X)
+
+EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv")# reference model data
+head(EXPLORE_refmodeldata)
+ref.model <- EXPLORE_refmodeldata 
+
+EXPLORE_refmodelCOR_CxD <- read.csv(file="EXPLORE_refmodelCOR_CxD.csv") %>% 
+  select(-X) # correlation reference model
+COR.refmodel <- EXPLORE_refmodelCOR_CxD
 
 ```
 
+```{r}
+# Summarize data: find total events per dyad (pool across days)
+observedXdyad <- observed
+observedXdyad <- observedXdyad %>% 
+                  dplyr::group_by(actor, subject) %>% 
+                  dplyr::summarise(observed.crowd=sum(crowd),
+                          observed.displace=sum(displace),
+                          observed.totalCD=sum(total.DC)) 
+observedXdyad <- as.data.frame(observedXdyad)   
+observedXdyad$actor <- as.character(observedXdyad$actor)
+observedXdyad$subject <- as.character(observedXdyad$subject)
+
+```
+
+## Check observed data 
+Need to make sure that all birds in the group are included in each network (fill no interactions with zeros)
+
+```{r}
+
+
+# list of all dyads
+head(dyad.list)
+str(dyad.list)
+
+# observed aggression by dyad by behavior
+head(observedXdyad)
+str(observedXdyad)
+
+#subset(observedXdyad, actor==subject) #check that we don't have any self-loops
+
+# merge data with full dyad list in case any didn't interact
+observedXdyad.alldyads <- merge(observedXdyad, dyad.list, 
+                           by=c("actor", "subject"), 
+                           all.y=TRUE)
+head(observedXdyad.alldyads)
+str(observedXdyad.alldyads) #should have 420 dyads -> length(dyad.list$dyadID)
+
+# convert NA to 0's
+observedXdyad.alldyads[is.na(observedXdyad.alldyads)] <- 0
+
+#check
+head(observedXdyad.alldyads)
+length(observedXdyad.alldyads$dyadID) # with 21 birds, we should have 420 dyads total
+
+
+# cast into square matrix with actor vertically in first column, all subjects horizontally in first row
+OBS.crd.mx <- dcast(observedXdyad.alldyads, actor~subject, value.var="observed.crowd")
+
+# check that actors and subjects are correct
+subset(observedXdyad.alldyads, actor=="BBB" & subject=="GGG")
+subset(observedXdyad.alldyads, actor=="GGG" & subject=="BBB")
+OBS.crd.mx[1,] #BBB wins against GGG
+OBS.crd.mx[11,] # GGG wins against BBB
+```
 
 
 # Loop to produce all reference model summaries (except strategies)
-Loop other than strategies takes about 4 min for sampled dataset. 
+Strategies take about 12 min each to run (12x100 crowd, 12x100 disp = 40 hours!)
+Loop other than strategies takes about 14 min for full dataset and 4 min for sampled dataset. 
 
 ```{r}
 #run.s #list of all run names
@@ -312,13 +401,13 @@ for(run in 1:replicates){
   run.cor <- run.corr[1,2]
   
   #summarize basic info
-  n.Rcrowd <- sum(run.data$crowd)
-  n.Rdisplace <- sum(run.data$displace)
+  n.Rcrowd <- sum(run.data$random.crowd)
+  n.Rdisplace <- sum(run.data$random.displace)
   prop.Rdisplace <- n.Rdisplace/(n.Rdisplace+n.Rcrowd)
   prop.Rcrowd <- n.Rcrowd/(n.Rdisplace+n.Rcrowd)
 
-  dyads.crowd <- subset(run.data, crowd>0)
-  dyads.displace <- subset(run.data, displace>0)
+  dyads.crowd <- subset(run.data, random.crowd>0)
+  dyads.displace <- subset(run.data, random.displace>0)
 
   n.Rcrowd.dyads <- length(dyads.crowd$actor)
   n.Rdisplace.dyads <- length(dyads.displace$actor)
@@ -353,7 +442,7 @@ for(run in 1:replicates){
   
   ### CROWD
   
-  ref.crowd.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="crowd") #head(ref.crowd.mx)
+  ref.crowd.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="random.crowd") #head(ref.crowd.mx)
   ref.crowd.mx[is.na(ref.crowd.mx)] <- 0 #for linearity measure, matrix needs to be fully filled, no NAs
   ref.crowd.mx <- matrix.please(ref.crowd.mx)
   
@@ -385,7 +474,7 @@ for(run in 1:replicates){
   
   ### DISPLACEMENT
   
-  ref.disp.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="displace") #head(ref.disp.mx)
+  ref.disp.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="random.displace") #head(ref.disp.mx)
   ref.disp.mx[is.na(ref.disp.mx)] <- 0
   ref.disp.mx <- matrix.please(ref.disp.mx)
   
@@ -429,27 +518,38 @@ end.time - start.time
 #t(ref.model.summaries)
 head(ref.model.summaries)
 
-# export data
-write.csv(ref.model.summaries, "EXPLORE-SUMM.sparse.refmodel.csv")
+
+# write data
+write.csv(ref.model.summaries, "EXPLORE-SUMM.refmodel.csv")
+
 ```
 
 
-#### 4. summarize strategies
+#### 4. summarize ref model strategies
 
-Finding the strategies for displacements (takes awhile!). 
 ```{r}
-head(ref.model)
+# import data (only necessary when you only run this part)
+
+EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv")# reference model data
+head(EXPLORE_refmodeldata)
+ref.model <- EXPLORE_refmodeldata 
+```
+
+#Find strategies (takes awhile!)
+
+```{r}
 #run.s #list of all run names
 #head(ref.model)
-#head(EXPLORE_refmodelCOR_CxD)
 
 run.s <- as.character(unique(ref.model$runID))
-n.total.dyads <- 420 #change this if the total number of dyads changes (group size !=21)
+n.total.dyads <- length(dyad.list$dyadID) 
 replicates <- 100 #how many runs of the reference model were done
 
 #make empty dataframe to fill
 ref.model.strategies <- data.frame(run.code=character(), 
                                    type=character(), 
+                                   fp.Rcrowd=numeric(), 
+                                   strategy.Rcrowd=numeric(), 
                                    fp.Rdisp=numeric(), 
                                    strategy.Rdisp=numeric()
                                   )
@@ -466,6 +566,7 @@ refmodel.blurdata <- data.frame(runID=character(),
                                 )
 #run=2
 
+#n.Ocrowd <- sum(run.data$observed.crowd)
 #n.Odisplace <- sum(run.data$observed.displace)
 start.time <- Sys.time()
 
@@ -487,10 +588,34 @@ for(run in 1:replicates){
    #fill newly-merged data with 0's where no interactions
   ref.modelW0s[is.na(ref.modelW0s)] <- 0
   
-
+  ### CROWD
+  
+  ref.crowd.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="random.crowd") #head(ref.crowd.mx)
+  ref.crowd.mx[is.na(ref.crowd.mx)] <- 0 #for linearity measure, matrix needs to be fully filled, no NAs
+  ref.crowd.mx <- matrix.please(ref.crowd.mx)
+  
+  #CROWDS
+  # Compute focus & position
+  focus.Rcrowd <- dom_focus(ref.crowd.mx)
+  position.Rcrowd <- dom_position(ref.crowd.mx)
+  fp.Rcrowd <- cbind.data.frame(focus.Rcrowd, position.Rcrowd)
+  colnames(fp.Rcrowd) <- c("focus", "position")
+  
+  #Compute blur models
+  blur.Rcrowd <- dom_make_blur_data(ref.crowd.mx)
+  
+  #compile crowd summary
+  runID <- rep(run.code, length(blur.Rcrowd$blur))
+  type <- rep("crowd", length(blur.Rcrowd$blur))
+  blur.crowd <- cbind.data.frame(runID, type, blur.Rcrowd)
+  
+  #Find strategy
+  strategy.Rcrowd <- dom_categorize_strategy(data=fp.Rcrowd, blur_data=blur.Rcrowd)
+  
+  
   ### DISPLACEMENT
   
-  ref.disp.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="displace") #head(ref.disp.mx)
+  ref.disp.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="random.displace") #head(ref.disp.mx)
   ref.disp.mx[is.na(ref.disp.mx)] <- 0
   ref.disp.mx <- matrix.please(ref.disp.mx)
   
@@ -516,10 +641,12 @@ for(run in 1:replicates){
   ### POOL ALL DATA
   
   #pool blur data
-  refmodel.blurdata <- rbind.data.frame(refmodel.blurdata, blur.displace)
+  refmodel.blurdata <- rbind.data.frame(refmodel.blurdata, blur.crowd, blur.displace)
   
   #pool strategy/run data
   run.strategy.sums <- cbind.data.frame(run.code, 
+                                        focus.Rcrowd, position.Rcrowd,
+                                        strategy.Rcrowd, 
                                         focus.Rdisp, position.Rdisp, strategy.Rdisp
                                         )
   
@@ -537,17 +664,10 @@ end.time - start.time
 head(ref.model.strategies)
 
 
-# check right refmodel used
-sum(ref.model$crowd[ref.model$runID=="run003"])
-sum(ref.model$displace[ref.model$runID=="run050"])
-
-# export data
-write.csv(ref.model.strategies, file = "EXPLORE_SUMM.sparse.refmodel.strategies.csv")	
-write.csv(refmodel.blurdata, file = "EXPLORE_SUMM.sparse.refmodel.blurs.csv")
+#WRITE DATA
+write.csv(ref.model.strategies, file = "EXPLORE_SUMM.refmodel.strategies.csv", sep="")	write.csv(ref.model.blurdata, file = "EXPLORE_SUMM.refmodel.blurs.csv", sep="")
 ```
 
 
-# session info 
-```{r}
-sessionInfo()
-```
+
+
