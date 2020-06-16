@@ -64,7 +64,19 @@ for (run in 1:replicates) {
   
   head(ref.model.sparse)
 
-### finds n disps per actor by date for trimmed data
+#check that runs are different from each other
+head(subset(ref.model.sparse, runID=="run001"))
+head(subset(ref.model.sparse, runID=="run002"))
+head(subset(ref.model.sparse, runID=="run003"))
+head(subset(ref.model.sparse, runID=="run011"))
+
+#check that all runs ran as expected
+unique(ref.model.sparse$runID)
+length(unique(ref.model.sparse$runID))  
+  
+  
+### summarize displacements by dyad
+# finds n disps per actor by date for trimmed data
 sample.aggDXday <- ref.model.sparse %>% 
   group_by(runID, actor, subject) %>% 
   summarise(displace=n())  %>%
@@ -76,8 +88,13 @@ sample.aggDXday<-as.data.frame(sample.aggDXday)
 #str(sample.aggDXday)
 
 
-### duplicate dataframe of crowds 100 times 
+# check whether displacements add up to number of crowds per run
+check.displace<-group_by(sample.aggDXday, runID) %>%
+  summarise(n.displace=sum(displace), length(displace))
+View(check.displace)
 
+
+### duplicate dataframe of crowds 100 times 
 obs.crowd<- observed %>%
   select(actor, subject,crowd) %>%
   group_by(actor, subject) %>% 
@@ -89,13 +106,31 @@ head(obs.crowd)
 datalist = list()
 
 for (run in 1:replicates) {
+    r.seed <- run
     dat <- obs.crowd
+    #dat$runID <- run  # to keep track of the iteration number (number format)
     dat$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(obs.crowd$actor)) # #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
     datalist[[run]] <- dat # add it to your list
    
 }
 
 obs.crowd.rep <- do.call(rbind, datalist)
+
+## check wether crowds in all runs are the same by dyad
+#check that runs are the same from each other
+head(subset(obs.crowd.rep , runID=="run001"))
+head(subset(obs.crowd.rep , runID=="run002"))
+head(subset(obs.crowd.rep , runID=="run003"))
+head(subset(obs.crowd.rep , runID=="run011"))
+
+#check that all runs ran as expected
+unique(obs.crowd.rep$runID)
+length(unique(obs.crowd.rep$runID))
+
+# check whether crowds add up to number of crowds per run
+check.crowd<-group_by(obs.crowd.rep, runID) %>%
+  summarise(n.crowd=sum(crowd), length(crowd))
+View(check.crowd)
 
 
 ### combine crowds and displacements per runID
@@ -104,10 +139,13 @@ sample.obs.CD<-full_join(obs.crowd.rep, sample.aggDXday, by=c("runID", "actor", 
   select(runID, everything()) %>%
   replace_na(list(crowd = 0, displace = 0)) %>%
   mutate(total.DC=displace + crowd)
-
-
 head(sample.obs.CD)
 str(sample.obs.CD)
+
+# check whether crowds and displacements add up to number of crowds per run
+check.sparse<-group_by(sample.obs.CD, runID) %>%
+  summarise(n.crowds=sum(crowd,  NA, na.rm = TRUE), n.displace=sum(displace, NA, na.rm = TRUE), length(subject))
+View(check.sparse)
 
 # export file
 write.csv(sample.obs.CD, file = "EXPLORE-sparse-aggCD.csv")
