@@ -508,3 +508,8 @@ write.csv(ref.model.strategies, file = "EXPLORE_SUMM.sparse.refmodel.strategies.
 write.csv(refmodel.blurdata, file = "EXPLORE_SUMM.sparse.refmodel.blurs.csv")
 ```
 
+
+# session info 
+```{r}
+sessionInfo()
+```
