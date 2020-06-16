@@ -1,5 +1,5 @@
 ---
-title: 'Observed data: summary + initial check'
+title: 'Observed data: initial check + summary'
 author: "Annemarie"
 date: "16/06/2020"
 output: html_document
@@ -127,8 +127,56 @@ OBS.crd.mx[11,] # GGG wins against BBB
 ```
 
 
+#### 1. initial check
+do the same dyads crowd and displace each other or do different dyads perform crowds vs displacements
 
-#### 1. OBSERVED DATA summary
+```{r}
+
+head(observedXdyad)
+length(observedXdyad$actor)
+
+# unique dyads that crowd
+unique.crowds <- observedXdyad %>%
+  filter(observed.crowd>0, observed.displace==0)
+View(unique.crowds)
+length(unique.crowds$observed.crowd)
+
+# unique dyads that displace
+unique.displace <- observedXdyad %>%
+  filter(observed.crowd==0, observed.displace>0)
+View(unique.displace)
+length(unique.displace$observed.displace)
+
+# dyads that perform both
+dyads.CD <- observedXdyad %>%
+  filter(observed.crowd>0, observed.displace>0)
+View(dyads.CD)
+length(dyads.CD$actor)
+
+# dyads that did not interact
+head(observedXdyad.alldyads)
+null.dyads <-  observedXdyad.alldyads %>%
+  filter(observed.totalCD==0)
+View(null.dyads)
+length(null.dyads$actor)
+
+## check 
+n.dyads.CD <- length(unique.crowds$observed.crowd) + length(unique.displace$observed.displace) + length(dyads.CD$actor)
+n.null.dyads<-length(null.dyads$actor)
+
+# following have to be the same
+n.dyads.CD+n.null.dyads
+length(observedXdyad.alldyads$actor)
+
+## combine
+interaction <- c("crowd", "displace", "both", "none", "total")
+n.dyads <- c(length(unique.crowds$observed.crowd), length(unique.displace$observed.displace),  length(dyads.CD$actor), length(null.dyads$actor), length(observedXdyad.alldyads$actor))
+dyads.interacting<-data.frame(interaction, n.dyads)
+
+```
+
+
+#### 2. OBSERVED DATA summary
 Summary of all measures for the observed crowds, displacements, and pooled data (totalCD)
 
 ```{r}
