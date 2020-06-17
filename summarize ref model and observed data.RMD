@@ -55,12 +55,12 @@ EXPLORE_refmodelCOR_CxD <- read.csv(file="EXPLORE_refmodelCOR_CxD.csv") %>% sele
 COR.refmodel <- EXPLORE_refmodelCOR_CxD
 ```
 
-SAMPLED data
+SAMPLED sparse data
 ```{r}
 # EXPLORE SAMPLED data 
-EXPLORE_sample_aggCD <- read.csv(file="EXPLORE-sample-aggCD.csv") 
-observed <- EXPLORE_sample_aggCD %>%
-  rename(rowID=X)
+EXPLORE_sparse_aggCD <- read.csv(file="EXPLORE-sparse-aggCD.csv") 
+observed <- EXPLORE_sparse_aggCD %>%
+  dplyr::rename(rowID=X)
 
 # ANALYZE observed data
 #ANALYZE_per0_aggCD <- read.csv(file="ANALYZE-per0-aggCD.csv")
@@ -69,7 +69,7 @@ observed <- EXPLORE_sample_aggCD %>%
 
 observedXdyad <- observed # observed aggression by dyad
 observedXdyad <- observedXdyad %>% 
-                  dplyr::group_by(actor, subject) %>% 
+                  dplyr::group_by(runID,actor, subject) %>% 
                   dplyr::summarise(observed.crowd=sum(crowd),
                           observed.displace=sum(displace),
                           observed.totalCD=sum(total.DC)) 
@@ -77,11 +77,6 @@ observedXdyad <- as.data.frame(observedXdyad)
 observedXdyad$actor <- as.character(observedXdyad$actor)
 observedXdyad$subject <- as.character(observedXdyad$subject)
 str(observedXdyad)
-
-
-#reference model data
-EXPLORE_sample_refmodel <- read.csv(file="EXPLORE-sample-refmodeldata.csv")
-ref.model <- EXPLORE_sample_refmodel #update name here when changing to ANALYZE ref model
 
 
 #reference model correlations of crowd vs displacements

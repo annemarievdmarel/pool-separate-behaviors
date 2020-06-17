@@ -164,6 +164,11 @@ per0<-select(period0, date, period, days)
 # for summary see "Basic group summary" script
 per0.dyad.aggDC<-right_join(dyad.aggDCXday.cst, per0, by="date")
 head(per0.dyad.aggDC)
+
+## select only last 3 days for final analyses
+agg.data <- subset(per0.dyad.aggDC, days=="last") %>%
+  select(-period, -days) %>%
+  tibble::rowid_to_column("rowID")
 ```
 
 
@@ -176,6 +181,7 @@ path.out <- "2020 field season/ANALYSIS/"
 
 write.csv(fitness.dyad.aggDC, paste0(machine, path.out,"EXPLORE.perpre.aggDC.csv"))
 write.csv(per0.dyad.aggDC, paste0(machine, path.out,"ANALYZE.per0.aggDC.csv"))
+write.csv(agg.data, "ANALYZE.aggDC.csv")
 
 ```
 
