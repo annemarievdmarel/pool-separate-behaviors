@@ -19,15 +19,10 @@ library(domstruc) #install_github("danm0nster/domstruc")
 
 # Import data
 ```{r}
-# TO TEST/EXPLORE scripts/analyses:
-EXPLORE_perpre_aggCD <- read.csv(file="EXPLORE-perpre-aggCD.csv") 
-observed <- EXPLORE_perpre_aggCD %>%
-  rename(rowID=X) # only necessary if the first column is an X
-
-# FINAL ANALYSIS:
-#ANALYZE_per0_aggCD <- read.csv(file="ANALYZE-per0-aggCD.csv") # final analyses
-#agg.data <- subset(ANALYZE_per0_aggDC, days=="last") #this is the ANALYZE data for the actual analyses in the final paper
-#observed <- agg.data
+ANALYZE_per0_aggCD <- read.csv(file="ANALYZE-per0-aggCD.csv") %>% 
+  rename(rowID=X) # only necessary if the first column is an X 
+agg.data <- subset(ANALYZE_per0_aggDC, days=="last") 
+observed <- agg.data
 
 head(observed)
 str(observed)
@@ -352,7 +347,6 @@ obs.cor <- cor(observedXdyad.alldyads$observed.crowd, observedXdyad.alldyads$obs
                                   ObtotalCD.transi.Pt, ObtotalCD.transi.ttri,
                                   ObtotalCD.focus, ObtotalCD.position,
                                   Obstrategy.totalCD
-                                  )
     
 # POOL ALL DATA
 observed.summary <- cbind.data.frame(Obcd.basic, Obcrowd.hier, Obdisp.hier, ObtotalCD.hier)
@@ -368,6 +362,5 @@ end.time - start.time
 t(observed.summary)
 
 # Write data
-write.csv(observed.summary, file = "EXPLORE-SUMM.observed.csv")
 write.csv(observed.summary, file = "ANALYZE-SUMM.observed.csv")
 ```

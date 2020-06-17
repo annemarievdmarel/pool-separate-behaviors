@@ -20,15 +20,10 @@ library(domstruc) #install_github("danm0nster/domstruc")
 
 # Import data
 ```{r}
-# TO TEST/EXPLORE scripts/analyses:
-EXPLORE_perpre_aggCD <- read.csv(file="EXPLORE-perpre-aggCD.csv") 
-observed <- EXPLORE_perpre_aggCD %>%
-  rename(rowID=X) # only necessary if the first column is an X
-
-# FINAL ANALYSIS:
-#ANALYZE_per0_aggCD <- read.csv(file="ANALYZE-per0-aggCD.csv") # final analyses
-#agg.data <- subset(ANALYZE_per0_aggDC, days=="last") #this is the ANALYZE data for the actual analyses in the final paper
-#observed <- agg.data
+ANALYZE_per0_aggCD <- read.csv(file="ANALYZE-per0-aggCD.csv") %>% 
+  rename(rowID=X) # only necessary if the first column is an X 
+agg.data <- subset(ANALYZE_per0_aggDC, days=="last") 
+observed <- agg.data
 
 head(observed)
 str(observed)
@@ -219,7 +214,7 @@ end.time - start.time
 ####
 
 # WRITE DATA 
-write.csv(ref.model, file = "EXPLORE-refmodeldata.csv")
+write.csv(ref.model, file = "ANALYZE-refmodeldata.csv")
 
 ```
 
@@ -229,10 +224,10 @@ Now, we can summarize our results using this reference model.
 
 ```{r}
 # load the reference model data
-EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv")
-head(EXPLORE_refmodeldata)
+ANALYZE_refmodeldata <- read.csv(file="ANALYZE-refmodeldata.csv")
+head(ANALYZE_refmodeldata)
 
-ref.model <- EXPLORE_refmodeldata 
+ref.model <- ANALYZE_refmodeldata 
 
 ```
 
@@ -274,7 +269,7 @@ for(run in 1:replicates){
 }
 
 # WRITE DATA
-write.csv(COR.refmodel, file = "EXPLORE_refmodelCOR_CxD.csv")	
+write.csv(COR.refmodel, file = "ANALYZE_refmodelCOR_CxD.csv")	
 
 ```
 
@@ -284,13 +279,13 @@ write.csv(COR.refmodel, file = "EXPLORE_refmodelCOR_CxD.csv")
 ```{r}
 # import data (only necessary when you only run this part)
 
-EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv")# reference model data
-head(EXPLORE_refmodeldata)
-ref.model <- EXPLORE_refmodeldata 
+ANALYZE_refmodeldata <- read.csv(file="ANALYZE-refmodeldata.csv")# reference model data
+head(ANALYZE_refmodeldata)
+ref.model <- ANALYZE_refmodeldata 
 
-EXPLORE_refmodelCOR_CxD <- read.csv(file="EXPLORE_refmodelCOR_CxD.csv") %>% 
+ANALYZE_refmodelCOR_CxD <- read.csv(file="ANALYZE_refmodelCOR_CxD.csv") %>% 
   select(-X) # correlation reference model
-COR.refmodel <- EXPLORE_refmodelCOR_CxD
+COR.refmodel <- ANALYZE_refmodelCOR_CxD
 
 ```
 
@@ -520,7 +515,7 @@ head(ref.model.summaries)
 
 
 # write data
-write.csv(ref.model.summaries, "EXPLORE-SUMM.refmodel.csv")
+write.csv(ref.model.summaries, "ANALYZE-SUMM.refmodel.csv")
 
 ```
 
@@ -530,10 +525,10 @@ write.csv(ref.model.summaries, "EXPLORE-SUMM.refmodel.csv")
 ```{r}
 # import data (only necessary when you only run this part)
 
-EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv") %>%# reference model data
+ANALYZE_refmodeldata <- read.csv(file="ANALYZE-refmodeldata.csv") %>%# reference model data
  select(-X)
-head(EXPLORE_refmodeldata)
-ref.model <- EXPLORE_refmodeldata 
+head(ANALYZE_refmodeldata)
+ref.model <- ANALYZE_refmodeldata 
 ```
 
 #Find strategies (takes awhile!)
@@ -666,7 +661,7 @@ head(ref.model.strategies)
 
 
 #WRITE DATA
-write.csv(ref.model.strategies, file = "EXPLORE_SUMM.refmodel.strategies.csv", sep="")	write.csv(ref.model.blurdata, file = "EXPLORE_SUMM.refmodel.blurs.csv", sep="")
+write.csv(ref.model.strategies, file = "ANALYZE_SUMM.refmodel.strategies.csv", sep="")	write.csv(ref.model.blurdata, file = "ANALYZE_SUMM.refmodel.blurs.csv", sep="")
 ```
 
 

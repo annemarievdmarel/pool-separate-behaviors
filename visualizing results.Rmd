@@ -29,17 +29,17 @@ library(ggplot2)
 # Import data
 ```{r}
 # summaries
-observed.summary <- read.csv("EXPLORE-SUMM.observed.csv")
+observed.summary <- read.csv("ANALYZE-SUMM.observed.csv")
 head(observed.summary)
-refmodel1.summary<- read.csv("EXPLORE-SUMM.refmodel.csv") # reference model 1
+refmodel1.summary<- read.csv("ANALYZE-SUMM.refmodel.csv") # reference model 1
 head(refmodel1.summary)
-refmodel2.summary<-read.csv("EXPLORE-SUMM.sparse.refmodel.csv") # reference model 2
+refmodel2.summary<-read.csv("ANALYZE-SUMM.sparse.refmodel.csv") # reference model 2
 head(refmodel2.summary)
 
 # reference model strategies
-refmodel1.strategies <- read.csv("EXPLORE_SUMM.refmodel.strategies.csv") # observed
+refmodel1.strategies <- read.csv("ANALYZE_SUMM.refmodel.strategies.csv") # observed
 str(refmodel1.strategies)
-refmodel2.strategies<- read.csv("EXPLORE_SUMM.sparse.refmodel.strategies.csv") %>%
+refmodel2.strategies<- read.csv("ANALYZE_SUMM.sparse.refmodel.strategies.csv") %>%
   rename(focus.sparse = focus.Rdisp, 
          position.sparse = position.Rdisp, 
          strategy.sparse = strategy.Rdisp) %>% 

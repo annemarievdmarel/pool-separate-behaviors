@@ -149,11 +149,11 @@ check.sparse<-group_by(sample.obs.CD, runID) %>%
 View(check.sparse)
 
 # export file
-write.csv(sample.obs.CD, file = "EXPLORE-sparse-aggCD.csv")
+write.csv(sample.obs.CD, file = "ANALYZE-sparse-aggCD.csv")
 
 
 ###SANJAY checking whether data matches csv file from repo
-repo.data <- read.csv("EXPLORE-sparse-aggCD.csv")
+repo.data <- read.csv("ANALYZE-sparse-aggCD.csv")
 
 #method 1
 setdiff(repo.data[,2:ncol(repo.data)], sample.obs.CD)
@@ -173,8 +173,8 @@ Now, we can summarize our results using this reference model.
 
 ```{r}
 # load the reference model data for the sampled dataset
-EXPLORE_sparse_aggCD <- read.csv(file="EXPLORE-sparse-aggCD.csv") 
-ref.model <- EXPLORE_sparse_aggCD %>%
+ANALYZE_sparse_aggCD <- read.csv(file="ANALYZE-sparse-aggCD.csv") 
+ref.model <- ANALYZE_sparse_aggCD %>%
   dplyr::rename(rowID=X)
 
 ```
@@ -220,11 +220,11 @@ detach(package:plyr)
 
 # WRITE DATA  for SAMPLED data
 head(COR.refmodel)
-write.csv(COR.refmodel, file = "EXPLORE_sparse_refmodelCOR.csv")	
+write.csv(COR.refmodel, file = "ANALYZE_sparse_refmodelCOR.csv")	
 ```
 
 #### 3. summarize ref model
-The summary results of the observed crowds are calculated in the 'summarize ref model and observed data.rmd' file and saved in "EXPLORE-SUMM.observed.csv"
+The summary results of the observed crowds are calculated in the 'summarize ref model and observed data.rmd' file and saved in "ANALYZE-SUMM.observed.csv"
 
 # Loop to produce all reference model summaries (except strategies)
 Loop other than strategies takes about 4 min for sampled dataset. 
@@ -232,7 +232,7 @@ Loop other than strategies takes about 4 min for sampled dataset.
 ```{r}
 #run.s #list of all run names
 #head(ref.model)
-#head(EXPLORE_refmodelCOR_CxD)
+#head(ANALYZE_refmodelCOR_CxD)
 
 run.s <- as.character(unique(ref.model$runID))
 n.total.dyads <- length(dyad.list$dyadID) #total number of dyads 
@@ -394,7 +394,7 @@ end.time - start.time
 head(ref.model.summaries)
 
 # export data
-write.csv(ref.model.summaries, "EXPLORE-SUMM.sparse.refmodel.csv")
+write.csv(ref.model.summaries, "ANALYZE-SUMM.sparse.refmodel.csv")
 ```
 
 
@@ -406,7 +406,7 @@ Finding the strategies for displacements (takes awhile!).
 head(ref.model)
 #run.s #list of all run names
 #head(ref.model)
-#head(EXPLORE_refmodelCOR_CxD)
+#head(ANALYZE_refmodelCOR_CxD)
 
 run.s <- as.character(unique(ref.model$runID))
 n.total.dyads <- 420 #change this if the total number of dyads changes (group size !=21)
@@ -507,7 +507,7 @@ sum(ref.model$crowd[ref.model$runID=="run003"])
 sum(ref.model$displace[ref.model$runID=="run050"])
 
 # export data
-write.csv(ref.model.strategies, file = "EXPLORE_SUMM.sparse.refmodel.strategies.csv")	
-write.csv(refmodel.blurdata, file = "EXPLORE_SUMM.sparse.refmodel.blurs.csv")
+write.csv(ref.model.strategies, file = "ANALYZE_SUMM.sparse.refmodel.strategies.csv")	
+write.csv(refmodel.blurdata, file = "ANALYZE_SUMM.sparse.refmodel.blurs.csv")
 ```
 
