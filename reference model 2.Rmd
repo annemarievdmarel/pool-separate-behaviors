@@ -7,7 +7,7 @@ output: html_document
 
 Here, we perform all the analyses for reference model 2
 
-# Load packages
+Load packages
 ```{r, include=FALSE}
 library(dplyr)
 library(tidyr)
@@ -17,49 +17,6 @@ library(purrr)
 library(EloRating)
 library(domstruc) #install_github("danm0nster/domstruc")
 ```
-
-# Import data
-```{r}
-# TO TEST/EXPLORE scripts/analyses:
-EXPLORE_perpre_aggCD <- read.csv(file="EXPLORE-perpre-aggCD.csv") 
-observed <- EXPLORE_perpre_aggCD %>%
-  rename(rowID=X) # only necessary if the first column is an X
-
-# FINAL ANALYSIS:
-#ANALYZE_per0_aggCD <- read.csv(file="ANALYZE-per0-aggCD.csv") # final analyses
-#agg.data <- subset(ANALYZE_per0_aggDC, days=="last") #this is the ANALYZE data for the actual analyses in the final paper
-#observed <- agg.data
-
-head(observed)
-str(observed)
-```
-
-
-## Helper functions & data
-```{r}
-
-#make matrix function (from dataframe, 1st col with row names)
-matrix.please<-function(x) {
-  m<-as.matrix(x[,-1])
-  rownames(m)<-x[,1]
-  m
-}
-
-#list of all valid color combinations/bird IDs
-bird.list <- c("BBB","BBG","BBR","BGB","BGG","BRB","BRR","GBB","GBG","GGB","GGG","GGR","GRG","GRR","RBB","RBG","RBR","RGG","RGR","RRG","RRR")
-length(bird.list)
-
-## dataframe of all possible dyad combinations
-dyad.list <- expand.grid(bird.list, bird.list) #head(dyad.list)
-names(dyad.list) <- c("actor", "subject")
-dyad.list <- subset(dyad.list, actor!=subject)
-dyad.list$dyadID <- paste(dyad.list$actor, dyad.list$subject, sep="-")
-dyad.list$actor <- as.character(dyad.list$actor)
-dyad.list$subject <- as.character(dyad.list$subject)
-head(dyad.list)
-
-```
-
 
 
 #### 1. Create reference model
@@ -181,7 +138,8 @@ View(check.crowd)
 sample.obs.CD<-full_join(obs.crowd.rep, sample.aggDXday, by=c("runID", "actor", "subject")) %>%
   select(runID, everything()) %>%
   replace_na(list(crowd = 0, displace = 0)) %>%
-  mutate(total.DC=displace + crowd)
+  mutate(total.DC=displace + crowd) %>%
+  arrange(runID)
 head(sample.obs.CD)
 str(sample.obs.CD)
 
@@ -191,33 +149,35 @@ check.sparse<-group_by(sample.obs.CD, runID) %>%
 View(check.sparse)
 
 # export file
-write.csv(sample.obs.CD, file = "EXPLORE-sparse-aggCD_AM.csv")
+write.csv(sample.obs.CD, file = "EXPLORE-sparse-aggCD.csv")
+
+
+###SANJAY checking whether data matches csv file from repo
+repo.data <- read.csv("EXPLORE-sparse-aggCD.csv")
+
+#method 1
+setdiff(repo.data[,2:ncol(repo.data)], sample.obs.CD)
+
+#method 2 (doesn't always work if there are decimal numbers in the dataframes)
+sum(repo.data[,2:ncol(repo.data)] == sample.obs.CD) # should equal to nrows x ncols of th'e dataframe
+nrow(sample.obs.CD)*ncol(sample.obs.CD)
+
+#method 3
+elementwise.all.equal <- Vectorize(function(x, y) {isTRUE(all.equal(x, y))})
+elementwise.all.equal(repo.data[,2:ncol(repo.data)], sample.obs.CD)
+
+###
 ```
 
 Now, we can summarize our results using this reference model.
 
 ```{r}
-# load the reference model data for the sparse dataset
+# load the reference model data for the sampled dataset
 EXPLORE_sparse_aggCD <- read.csv(file="EXPLORE-sparse-aggCD.csv") 
 ref.model <- EXPLORE_sparse_aggCD %>%
   dplyr::rename(rowID=X)
 
 ```
-
-First, check whether generated csv file on github is the same as newly generated refmodel
-```{r}
-
-ref.model <- EXPLORE_sparse_aggCD %>%
-  dplyr::select(-X)
-head(ref.model) # file from github
-head(sample.obs.CD) # newly generated file
-
-setdiff(ref.model, sample.obs.CD)
-
-
-
-```
-
 
 
 
@@ -263,20 +223,8 @@ head(COR.refmodel)
 write.csv(COR.refmodel, file = "EXPLORE_sparse_refmodelCOR.csv")	
 ```
 
-
-
 #### 3. summarize ref model
-The summary results of the observed crowds are calculated in the 'reference model 1.rmd' file and saved in "EXPLORE-SUMM.observed.csv"
-
-```{r}
-# import data (only necessary when you only run this part)
-EXPLORE_sparse_aggCD <- read.csv(file="EXPLORE-sparse-aggCD.csv") # reference model
-ref.model <- EXPLORE_sparse_aggCD %>%
-  dplyr::rename(rowID=X)
-
-```
-
-
+The summary results of the observed crowds are calculated in the 'summarize ref model and observed data.rmd' file and saved in "EXPLORE-SUMM.observed.csv"
 
 # Loop to produce all reference model summaries (except strategies)
 Loop other than strategies takes about 4 min for sampled dataset. 
@@ -284,7 +232,7 @@ Loop other than strategies takes about 4 min for sampled dataset.
 ```{r}
 #run.s #list of all run names
 #head(ref.model)
-#head(COR.refmodel)
+#head(EXPLORE_refmodelCOR_CxD)
 
 run.s <- as.character(unique(ref.model$runID))
 n.total.dyads <- length(dyad.list$dyadID) #total number of dyads 
@@ -450,6 +398,7 @@ write.csv(ref.model.summaries, "EXPLORE-SUMM.sparse.refmodel.csv")
 ```
 
 
+
 #### 4. summarize strategies
 
 Finding the strategies for displacements (takes awhile!). 
@@ -562,8 +511,3 @@ write.csv(ref.model.strategies, file = "EXPLORE_SUMM.sparse.refmodel.strategies.
 write.csv(refmodel.blurdata, file = "EXPLORE_SUMM.sparse.refmodel.blurs.csv")
 ```
 
-
-# session info 
-```{r}
-sessionInfo()
-```
