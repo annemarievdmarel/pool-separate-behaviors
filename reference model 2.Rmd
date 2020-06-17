@@ -191,7 +191,7 @@ check.sparse<-group_by(sample.obs.CD, runID) %>%
 View(check.sparse)
 
 # export file
-write.csv(sample.obs.CD, file = "EXPLORE-sparse-aggCD.csv")
+write.csv(sample.obs.CD, file = "EXPLORE-sparse-aggCD_AM.csv")
 ```
 
 Now, we can summarize our results using this reference model.
@@ -203,6 +203,22 @@ ref.model <- EXPLORE_sparse_aggCD %>%
   dplyr::rename(rowID=X)
 
 ```
+
+First, check whether generated csv file on github is the same as newly generated refmodel
+```{r}
+
+ref.model <- EXPLORE_sparse_aggCD %>%
+  dplyr::select(-X)
+head(ref.model) # file from github
+head(sample.obs.CD) # newly generated file
+
+setdiff(ref.model, sample.obs.CD)
+
+
+
+```
+
+
 
 
 #### 2. Correlation between crowds and displacements
