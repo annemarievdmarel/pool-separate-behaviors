@@ -530,7 +530,8 @@ write.csv(ref.model.summaries, "EXPLORE-SUMM.refmodel.csv")
 ```{r}
 # import data (only necessary when you only run this part)
 
-EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv")# reference model data
+EXPLORE_refmodeldata <- read.csv(file="EXPLORE-refmodeldata.csv") %>%# reference model data
+ select(-X)
 head(EXPLORE_refmodeldata)
 ref.model <- EXPLORE_refmodeldata 
 ```
