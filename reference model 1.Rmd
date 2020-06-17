@@ -20,10 +20,9 @@ library(domstruc) #install_github("danm0nster/domstruc")
 
 # Import data
 ```{r}
-ANALYZE_per0_aggCD <- read.csv(file="ANALYZE-per0-aggCD.csv") %>% 
+ANALYZE_aggCD <- read.csv(file="ANALYZE.aggDC.csv") %>% 
   rename(rowID=X) # only necessary if the first column is an X 
-agg.data <- subset(ANALYZE_per0_aggDC, days=="last") 
-observed <- agg.data
+observed <- ANALYZE_aggCD 
 
 head(observed)
 str(observed)
