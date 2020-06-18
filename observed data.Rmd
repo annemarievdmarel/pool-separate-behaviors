@@ -164,7 +164,9 @@ length(observedXdyad.alldyads$actor)
 ## combine
 interaction <- c("crowd", "displace", "both", "none", "total")
 n.dyads <- c(length(unique.crowds$observed.crowd), length(unique.displace$observed.displace),  length(dyads.CD$actor), length(null.dyads$actor), length(observedXdyad.alldyads$actor))
-dyads.interacting<-data.frame(interaction, n.dyads)
+dyads.interacting<-data.frame(interaction, n.dyads) 
+dyads.interacting <- dyads.interacting %>%
+  mutate(percentage = n.dyads/420*100)
 
 head(dyads.interacting)
 
