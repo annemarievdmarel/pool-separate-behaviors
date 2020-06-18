@@ -7,7 +7,7 @@ output: html_document
 
 Here, we perform all the analyses for reference model 2
 
-Load packages
+# Load packages
 ```{r, include=FALSE}
 library(dplyr)
 library(tidyr)
@@ -17,6 +17,27 @@ library(purrr)
 library(EloRating)
 library(domstruc) #install_github("danm0nster/domstruc")
 ```
+
+# Import data
+```{r}
+ANALYZE_aggCD <- read.csv(file="ANALYZE.aggDC.csv") %>% 
+  rename(rowID=X) # only necessary if the first column is an X 
+observed <- ANALYZE_aggCD 
+
+head(observed)
+str(observed)
+
+# check 
+unique(observed$actor)
+unique(observed$subject)
+unique(observed$date)
+
+sum(observed$crowd)
+sum(observed$displace)
+sum(observed$total.DC)
+
+```
+
 
 
 #### 1. Create reference model
