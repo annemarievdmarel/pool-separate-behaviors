@@ -224,7 +224,7 @@ write.csv(COR.refmodel, file = "ANALYZE_sparse_refmodelCOR.csv")
 ```
 
 #### 3. summarize ref model
-The summary results of the observed crowds are calculated in the 'summarize ref model and observed data.rmd' file and saved in "ANALYZE-SUMM.observed.csv"
+The summary results of the observed crowds are calculated in the 'observed data.rmd' file and saved in "ANALYZE-SUMM.observed.csv"
 
 # Loop to produce all reference model summaries (except strategies)
 Loop other than strategies takes about 4 min for sampled dataset. 
@@ -232,7 +232,6 @@ Loop other than strategies takes about 4 min for sampled dataset.
 ```{r}
 #run.s #list of all run names
 #head(ref.model)
-#head(ANALYZE_refmodelCOR_CxD)
 
 run.s <- as.character(unique(ref.model$runID))
 n.total.dyads <- length(dyad.list$dyadID) #total number of dyads 
