@@ -23,6 +23,7 @@ Aggression pattern
 library(beanplot)
 library(scales)
 library(ggplot2)
+library(dplyr)
 
 ```
 
@@ -92,7 +93,7 @@ beanplot(refmodel1.summary$Rcrowd.steepness, refmodel1.summary$Rdisp.steepness,r
          main="Steepness", 
          ylab="Dij", las=1, log = "",
          ylim = c(min(observed.summary$Obcrowd.steepness-0.1), 
-        max(refmodel.summary$Rdisp.steepness,observed.summary$Obdisp.steepness+0.1)),
+        max(refmodel1.summary$Rdisp.steepness,observed.summary$Obdisp.steepness+0.1)),
          xlab = "", names = c("ref1 crowds", "ref1 displace", "ref2 displace"),
          col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
          border = 'NA', 
@@ -108,8 +109,8 @@ beanplot(refmodel1.summary$Rcrowd.transi.ttri, refmodel1.summary$Rdisp.transi.tt
          refmodel2.summary$Rdisp.transi.ttri,
          main ="Transitivity", 
          ylab="Triangle motifs",
-         ylim=c(min(refmodel.summary$Rdisp.transi.ttri-0.1), 
-                max(refmodel.summary$Rdisp.transi.ttri,refmodel.summary$Rdisp.transi.ttri+0.1)),
+         ylim=c(min(refmodel1.summary$Rdisp.transi.ttri-0.1), 
+                max(refmodel1.summary$Rdisp.transi.ttri,refmodel2.summary$Rdisp.transi.ttri+0.1)),
          xlab = "", names = c("ref1 crowds", "ref1 displace", "ref2 displace"),
          col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
          border = 'NA', 
@@ -154,7 +155,7 @@ beanplot(refmodel1.summary$Rcrowd.prunk.pu, refmodel1.summary$Rdisp.prunk.pu,ref
          main ="Sparseness", 
          ylab="prop null dyads", 
          ylim=c(min(observed.summary$Obdisp.prunk.pu-0.1), 
-                max(refmodel.summary$Rcrowd.prunk.pu,observed.summary$Obcrowd.prunk.pu+0.1)),
+                max(refmodel2.summary$Rcrowd.prunk.pu,observed.summary$Obcrowd.prunk.pu+0.1)),
          las=1, xlab = "", names = c("ref1 crowds", "ref1 displace", "ref2 displace"),
          col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
          border = 'NA', 
