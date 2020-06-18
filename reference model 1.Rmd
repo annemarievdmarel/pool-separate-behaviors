@@ -240,7 +240,7 @@ head(ref.model)
 require(plyr)
 func <- function(ref.model)
 {
-return(data.frame(COR = cor(ref.model$random.displace, ref.model$random.crowd)))
+return(data.frame(COR = cor(ref.model$random.displace, ref.model$random.crowd, method = "spearman")))
 }
 
 COR.refmodel <- ddply(ref.model, .(runID), func)

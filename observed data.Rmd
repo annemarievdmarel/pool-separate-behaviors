@@ -179,7 +179,19 @@ Summary of all measures for the observed crowds, displacements, and pooled data 
 ```{r}
 start.time <- Sys.time()
 
-obs.cor <- cor(observedXdyad.alldyads$observed.crowd, observedXdyad.alldyads$observed.displace)
+  # pearson or spearman correlation
+# normal distribution?
+hist(observedXdyad.alldyads$observed.crowd)
+hist(observedXdyad.alldyads$observed.displace)
+# linear relationship?
+plot(observedXdyad.alldyads$observed.crowd,observedXdyad.alldyads$observed.displace) 
+
+obs.cor <- cor(observedXdyad.alldyads$observed.crowd, observedXdyad.alldyads$observed.displace, method = "spearman")
+
+cor.test(observedXdyad.alldyads$observed.crowd, 
+         observedXdyad.alldyads$observed.displace, 
+         method = "spearman",
+         exact = FALSE)
 
   #summarize basic info
   n.Obcrowd <- sum(observedXdyad.alldyads$observed.crowd)
