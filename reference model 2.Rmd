@@ -56,7 +56,7 @@ length(aggD.long$rowID)
 sum(observed$displace)
 
 # check how many crowds we have
-n.obs.crowd<-sum(observed$crowd)  # 56 crowds
+n.obs.crowd<-sum(observed$crowd)
 
 head(aggD.long)
 
