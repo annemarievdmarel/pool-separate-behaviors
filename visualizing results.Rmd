@@ -59,9 +59,10 @@ head(ref.model.strategies)
 # correlation
 beanplot(refmodel1.summary$run.cor, refmodel2.summary$run.cor, 
          main="Distribution of correlations", 
-         ylab="Correlation strength", 
+         ylab="Spearman's rho", 
          xlab = "reference model", 
-         ylim=c(0, 1),
+         ylim = c(min(refmodel2.summary$run.cor-0.1), 
+                  max(0.6)),
          las=1, col = c("lightgrey", alpha("black", 0.6)), border = "NA") 
 abline(h=observed.summary$obs.cor, col="red")  # add line estimate of totalDC 
 ```
