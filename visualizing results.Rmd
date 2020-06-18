@@ -138,7 +138,7 @@ beanplot(refmodel1.summary$Rcrowd.density, refmodel1.summary$Rdisplace.density, 
          main="Density", 
          ylab="prop agonistic dyads", 
          ylim = c(min(observed.summary$Obcrowd.density-0.1), 
-                  max(observed.summary$Obdisplace.density+0.1)),
+                  max(observed.summary$Obdisplace.density+0.25)),
          xlab = "", names = c("ref1 crowds", "ref1 displace", "ref2 displace"),
          col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
          border = 'NA', 
@@ -173,9 +173,9 @@ summary of number of runs per strategy and plot those with observed strategie in
 
 ```{r}
 # observed strategies
-observed.summary$strategy.Obcrowd # "downward.heuristic"
+observed.summary$strategy.Obcrowd # "pure bully"
 observed.summary$strategy.Obdisp  # "pure bully"
-observed.summary$Obstrategy.totalCD # "downward.heuristic"
+observed.summary$Obstrategy.totalCD # "pure bully"
 
 
 # strategies per random run
@@ -207,7 +207,7 @@ strategies$behavior<-factor(strategies$behavior,
 ggplot(strategies, aes(x=behavior, y=n, fill=strategy)) +
   geom_col(aes(group= strategy)) +
   theme_classic() +
-  labs(y="percentage", x="", caption = "observed crowd = downward heuristic \nobserved displace = bullying \nobserved pooled = downward heuristic") +
+  labs(y="percentage", x="", caption = "observed crowd = bullying \nobserved displace = bullying \nobserved pooled = bullying") +
   theme(plot.caption=element_text(hjust = 0) ) +
   scale_fill_manual(values=c(alpha("lightgrey", 0.4),alpha("red", 0.4), alpha("blue", 0.4), alpha("black", 0.6)))  
 
