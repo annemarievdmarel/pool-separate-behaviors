@@ -660,7 +660,9 @@ head(ref.model.strategies)
 
 
 #WRITE DATA
-write.csv(ref.model.strategies, file = "ANALYZE_SUMM.refmodel.strategies.csv", sep="")	write.csv(ref.model.blurdata, file = "ANALYZE_SUMM.refmodel.blurs.csv", sep="")
+write.csv(ref.model.strategies, file = "ANALYZE_SUMM.refmodel.strategies.csv")
+
+write.csv(refmodel.blurdata, file = "ANALYZE_SUMM.refmodel.blurs.csv")
 ```
 
 
