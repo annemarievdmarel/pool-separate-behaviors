@@ -54,6 +54,19 @@ head(ref.model.strategies)
 
 #### Distribution plots
 
+set color and other parameters
+```{r}
+# set color and other parameters
+beancolor<- list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("#fc8d62"))
+crowds <- "#8da0cb"
+displace <- "#fc8d62"
+pooled <- "grey"
+linewidth <- 2
+xlabels <- c("ref1 crowds", "ref1 displace", "ref2 displace")
+```
+
+
+
 # correlation
 ```{r pressure, echo=FALSE}
 # correlation
@@ -64,13 +77,13 @@ beanplot(refmodel1.summary$run.cor, refmodel2.summary$run.cor,
          ylim = c(min(refmodel2.summary$run.cor-0.1), 
                   max(0.6)),
          las=1, col = c("lightgrey", alpha("black", 0.6)), border = "NA") 
-abline(h=observed.summary$obs.cor, col="red")  # add line estimate of totalDC 
+abline(h=observed.summary$obs.cor, col=pooled, lwd = linewidth)  # add line estimate of totalDC 
 ```
 
 # Hierarchy structure plots combined
 The distribution of randomized crowds and displacements (ref model 1) and sparse sampled displacements (ref model 2) with observed values
 ```{r}
-par(mfrow=c(3,1))
+par(mfrow=c(1,3))
 
 
 # linearity
@@ -79,14 +92,13 @@ beanplot(refmodel1.summary$Rcrowd.linearity, refmodel1.summary$Rdisp.linearity, 
          ylab="h index", log = "",
          ylim = c(min(observed.summary$Obcrowd.linearity-0.1), 
                   max(observed.summary$Obdisp.linearity+0.1)),
-         xlab = "", names = c("ref1 crowds", "ref1 displace", "ref2 displace"),
-         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
-         border = 'NA', 
-         ll = 0.1, beanlinewd = 0.1)
-points(1,observed.summary$Obcrowd.linearity, col= "#8da0cb", pch=19) # crowds
-points(2,observed.summary$Obdisp.linearity, col= "#fc8d62", pch=19) # displacements
-points(3,observed.summary$Obcrowd.linearity, col= "#8da0cb" , pch=19) # crowds
-abline(h=observed.summary$ObtotalCD.linearity, col="red")  # add line estimate of totalDC 
+         xlab = "", names = xlabels, col = beancolor, 
+         border = 'NA', las=1, ll = 0.1, beanlinewd = 0.1,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+points(1,observed.summary$Obcrowd.linearity, col= crowds, pch=19) # crowds
+points(2,observed.summary$Obdisp.linearity, col= displace, pch=19) # displacements
+points(3,observed.summary$Obcrowd.linearity, col= crowds , pch=19) # crowds
+abline(h=observed.summary$ObtotalCD.linearity, col=pooled, lwd = linewidth)  # add line estimate of totalDC 
 
 
 # steepness
@@ -95,14 +107,13 @@ beanplot(refmodel1.summary$Rcrowd.steepness, refmodel1.summary$Rdisp.steepness,r
          ylab="Dij", las=1, log = "",
          ylim = c(min(observed.summary$Obcrowd.steepness-0.1), 
         max(refmodel1.summary$Rdisp.steepness,observed.summary$Obdisp.steepness+0.1)),
-         xlab = "", names = c("ref1 crowds", "ref1 displace", "ref2 displace"),
-         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
-         border = 'NA', 
-         ll = 0.1, beanlinewd = 0.1)
-points(1,observed.summary$Obcrowd.steepness, col="#8da0cb", pch=19) # crowds
-points(2,observed.summary$Obdisp.steepness, col="#fc8d62", pch=19) # displacements
-points(3,observed.summary$Obcrowd.steepness, col= "#8da0cb" , pch=19) # crowds
-abline(h=observed.summary$ObtotalCD.steepness, col="red")  # add line estimate of totalDC 
+         xlab = "", names = xlabels, col = beancolor, 
+         border = 'NA', las=1, ll = 0.1, beanlinewd = 0.1,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+points(1,observed.summary$Obcrowd.steepness, col=crowds, pch=19) # crowds
+points(2,observed.summary$Obdisp.steepness, col=displace, pch=19) # displacements
+points(3,observed.summary$Obcrowd.steepness, col= crowds , pch=19) # crowds
+abline(h=observed.summary$ObtotalCD.steepness, col=pooled, lwd = linewidth)  # add line estimate of totalDC 
 
 
 # transitivity
@@ -112,28 +123,20 @@ beanplot(refmodel1.summary$Rcrowd.transi.ttri, refmodel1.summary$Rdisp.transi.tt
          ylab="Triangle motifs",
          ylim=c(min(refmodel1.summary$Rdisp.transi.ttri-0.1), 
                 max(refmodel1.summary$Rdisp.transi.ttri,refmodel2.summary$Rdisp.transi.ttri+0.1)),
-         xlab = "", names = c("ref1 crowds", "ref1 displace", "ref2 displace"),
-         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
-         border = 'NA', 
-         ll = 0.1, 
-         beanlinewd = 0.1)
-points(1,observed.summary$Obcrowd.transi.ttri, col= "#8da0cb" , pch=19) # crowds
-points(2,observed.summary$Obdisp.transi.ttri, col= "#fc8d62", pch=19) # displacements
-points(3,observed.summary$Obcrowd.transi.ttri, col= "#8da0cb" , pch=19) # crowds
-abline(h=observed.summary$ObtotalCD.transi.ttri, col="red") # add line estimate of totalDC 
-
-# add legend 
-# outside plot?  ... how to do this easily in base R?
-# legend("topleft", bty = "n",  legend=c("crowds", "displace"),
-#       col=c("#8da0cb", "#fc8d62"), pch = 19,
-#       title="observed") 
+         xlab = "", names = xlabels, col = beancolor, 
+         border = 'NA', las=1, ll = 0.1, beanlinewd = 0.1,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+points(1,observed.summary$Obcrowd.transi.ttri, col= crowds , pch=19) # crowds
+points(2,observed.summary$Obdisp.transi.ttri, col= displace, pch=19) # displacements
+points(3,observed.summary$Obcrowd.transi.ttri, col= crowds , pch=19) # crowds
+abline(h=observed.summary$ObtotalCD.transi.ttri, col=pooled, lwd = linewidth) # add line estimate of totalDC 
 
 ```
 
 ## Network-based measures combined
 
 ```{r}
-par(mfrow=c(2,1))
+par(mfrow=c(1,2))
 
 # density
 beanplot(refmodel1.summary$Rcrowd.density, refmodel1.summary$Rdisplace.density, refmodel2.summary$Rdisplace.density,  
@@ -141,30 +144,28 @@ beanplot(refmodel1.summary$Rcrowd.density, refmodel1.summary$Rdisplace.density, 
          ylab="prop agonistic dyads", 
          ylim = c(min(observed.summary$Obcrowd.density-0.1), 
                   max(observed.summary$Obdisplace.density+0.25)),
-         xlab = "", names = c("ref1 crowds", "ref1 displace", "ref2 displace"),
-         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
-         border = 'NA', 
-         ll = 0.05, beanlinewd = 0.1)
-points(1,observed.summary$Obcrowd.density, col="#8da0cb" , pch=19) # crowds
-points(2,observed.summary$Obdisplace.density, col="#fc8d62", pch=19) # displacements
-points(3,observed.summary$Obcrowd.density, col="#8da0cb" , pch=19) # crowds
-abline(h=observed.summary$ObtotalCD.density, col="red") # add line estimate of totalDC
+         xlab = "", names = xlabels, col = beancolor, 
+         border = 'NA', las=1, ll = 0.1, beanlinewd = 0.1,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+points(1,observed.summary$Obcrowd.density, col=crowds , pch=19) # crowds
+points(2,observed.summary$Obdisplace.density, col=displace, pch=19) # displacements
+points(3,observed.summary$Obcrowd.density, col=crowds , pch=19) # crowds
+abline(h=observed.summary$ObtotalCD.density, col=pooled, lwd = linewidth) # add line estimate of totalDC
 
 
 # sparseness
 beanplot(refmodel1.summary$Rcrowd.prunk.pu, refmodel1.summary$Rdisp.prunk.pu,refmodel2.summary$Rdisp.prunk.pu,
          main ="Sparseness", 
-         ylab="prop null dyads", 
+         ylab="prop null dyads", las=1, 
          ylim=c(min(observed.summary$Obdisp.prunk.pu-0.1), 
                 max(refmodel2.summary$Rcrowd.prunk.pu,observed.summary$Obcrowd.prunk.pu+0.1)),
-         las=1, xlab = "", names = c("ref1 crowds", "ref1 displace", "ref2 displace"),
-         col = list(alpha("#8da0cb", 0.6),c(alpha("#fc8d62", 0.6)), alpha("black", 0.6)), 
-         border = 'NA', 
-         ll = 0.05, beanlinewd = 0.1)
-points(1,observed.summary$Obcrowd.prunk.pu, col="#8da0cb" , pch=19) # crowds
-points(2,observed.summary$Obdisp.prunk.pu, col="#fc8d62", pch=19) # displacements
-points(3,observed.summary$Obcrowd.prunk.pu, col="#8da0cb" , pch=19) # crowds
-abline(h=observed.summary$ObtotalCD.prunk.pu, col="red")  # add line estimate of totalDC 
+        xlab = "", names = xlabels, col = beancolor, 
+         border = 'NA', las=1, ll = 0.1, beanlinewd = 0.1,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+points(1,observed.summary$Obcrowd.prunk.pu, col=crowds , pch=19) # crowds
+points(2,observed.summary$Obdisp.prunk.pu, col=displace, pch=19) # displacements
+points(3,observed.summary$Obcrowd.prunk.pu, col=crowds , pch=19) # crowds
+abline(h=observed.summary$ObtotalCD.prunk.pu, col=pooled, lwd = linewidth)  # add line estimate of totalDC 
 
 ```
 
