@@ -3,6 +3,8 @@ title: 'Observed data: initial check + summary'
 author: "Annemarie"
 date: "16/06/2020"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -162,8 +164,8 @@ n.dyads.CD+n.null.dyads
 length(observedXdyad.alldyads$actor)
 
 ## combine
-interaction <- c("crowd", "displace", "both", "none", "total")
-n.dyads <- c(length(unique.crowds$observed.crowd), length(unique.displace$observed.displace),  length(dyads.CD$actor), length(null.dyads$actor), length(observedXdyad.alldyads$actor))
+interaction <- c("crowd", "displace", "both", "total ag. dyads" , "none","total")
+n.dyads <- c(length(unique.crowds$observed.crowd), length(unique.displace$observed.displace),  length(dyads.CD$actor), n.dyads.CD, length(null.dyads$actor), length(observedXdyad.alldyads$actor))
 dyads.interacting<-data.frame(interaction, n.dyads) 
 dyads.interacting <- dyads.interacting %>%
   mutate(percentage = n.dyads/420*100)
@@ -179,17 +181,18 @@ Summary of all measures for the observed crowds, displacements, and pooled data 
 ```{r}
 start.time <- Sys.time()
 
-  # pearson or spearman correlation
+  # pearson or spearman correlation (null dyads excluded)
 # normal distribution?
-hist(observedXdyad.alldyads$observed.crowd)
-hist(observedXdyad.alldyads$observed.displace)
+hist(observedXdyad$observed.crowd)
+hist(observedXdyad$observed.displace)
 # linear relationship?
-plot(observedXdyad.alldyads$observed.crowd,observedXdyad.alldyads$observed.displace) 
+plot(observedXdyad$observed.crowd,observedXdyad$observed.displace) 
 
-obs.cor <- cor(observedXdyad.alldyads$observed.crowd, observedXdyad.alldyads$observed.displace, method = "spearman")
+obs.cor <- cor(observedXdyad$observed.crowd, observedXdyad$observed.displace, 
+               method = "spearman")
 
-cor.test(observedXdyad.alldyads$observed.crowd, 
-         observedXdyad.alldyads$observed.displace, 
+cor.test(observedXdyad$observed.crowd, 
+         observedXdyad$observed.displace, 
          method = "spearman",
          exact = FALSE)
 
