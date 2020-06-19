@@ -4,7 +4,7 @@ author: "Annemarie"
 date: "16/06/2020"
 output: html_document
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 
@@ -164,14 +164,18 @@ n.dyads.CD+n.null.dyads
 length(observedXdyad.alldyads$actor)
 
 ## combine
-interaction <- c("crowd", "displace", "both", "total ag. dyads" , "none","total")
-n.dyads <- c(length(unique.crowds$observed.crowd), length(unique.displace$observed.displace),  length(dyads.CD$actor), n.dyads.CD, length(null.dyads$actor), length(observedXdyad.alldyads$actor))
+interaction <- c("crowd", "displace", "both", "total ag. dyads")
+n.dyads <- c(length(unique.crowds$observed.crowd), length(unique.displace$observed.displace),  length(dyads.CD$actor), n.dyads.CD)
 dyads.interacting<-data.frame(interaction, n.dyads) 
 dyads.interacting <- dyads.interacting %>%
-  mutate(percentage = n.dyads/420*100)
+  mutate(percentage = n.dyads/203*100)
 
 head(dyads.interacting)
 
+n.null.dyads<-length(null.dyads$actor)
+n.total.dyads<-length(observedXdyad.alldyads$actor)
+
+n.dyads.CD/420*100 # percentage of dyads that interacted
 ```
 
 
