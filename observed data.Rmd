@@ -201,6 +201,12 @@ cor.test(observedXdyad$observed.crowd,
          exact = FALSE)
 
   #summarize basic info
+  basic.summary<-observedXdyad %>%
+    summarize(ave.crowds = mean(observed.crowd), sd.crowds=sd(observed.crowd), min.crowds=min(observed.crowd), max.crowds=max(observed.crowd),
+              ave.displace = mean(observed.displace), sd.displace= sd(observed.displace),min.displace=min(observed.displace),max.displace=max(observed.displace),
+              ave.totalCD=mean(observed.totalCD), sd.totalCD=sd(observed.totalCD),
+              min.total=min(observed.totalCD),max.total=max(observed.totalCD))
+
   n.Obcrowd <- sum(observedXdyad.alldyads$observed.crowd)
   n.Obdisplace <- sum(observedXdyad.alldyads$observed.displace)
   n.totalCD <- sum(observedXdyad.alldyads$observed.displace+ observedXdyad.alldyads$observed.crowd)
