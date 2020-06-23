@@ -63,6 +63,7 @@ col.dkgn <- "#33a02c" #use for regular displace
 col.lttl <- "#a6cee3"
 col.dkrd <- "#ca0020"
 
+
 #set color by behavior
 crowds <- col.teal
 displace <- col.dkgn
@@ -72,11 +73,10 @@ obs.vals <- col.dkrd
 bean.alpha <- 0.4
 
 
-beaninlines<- alpha("black", 0.2)
+beaninlines <- alpha("black", 0.2)
 beanoutlines<- alpha("black", 0.2)
 beanavgines <- "purple"
-
-
+beanborder <- alpha("black", 0.6)
 
 pooled.alpha <- 0.7
 linewidth <- 1
@@ -136,7 +136,7 @@ beanplot(refmodel1.summary$Rcrowd.linearity, refmodel1.summary$Rdisp.linearity, 
                     c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 3
                     ), 
         
-         border = 'NA', 
+         border = beanborder, 
          las=1, 
          ll = 0.1, beanlinewd = 2,
          cutmin=0, cutmax=1,
@@ -168,7 +168,7 @@ beanplot(refmodel1.summary$Rcrowd.steepness, refmodel1.summary$Rdisp.steepness,r
                     c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 3
                     ),         
          
-         border = 'NA', las=1, ll = 0.1, beanlinewd = 2,
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
          cutmin=0, cutmax=1, #so distributions not plotted past 0-1 range
          what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
 
@@ -199,7 +199,7 @@ beanplot(refmodel1.summary$Rcrowd.transi.ttri, refmodel1.summary$Rdisp.transi.tt
                     c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 3
                     ), 
          
-         border = 'NA', las=1, ll = 0.1, beanlinewd = 2,
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
          cutmin=0, cutmax=1,
          what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
 
@@ -239,7 +239,7 @@ beanplot(refmodel1.summary$Rcrowd.density, refmodel1.summary$Rdisplace.density, 
                     c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 3
                     ),          
 
-         border = 'NA', las=1, ll = 0.1, beanlinewd = 2,
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
          what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
 
   # add points for observed values
@@ -267,7 +267,7 @@ beanplot(refmodel1.summary$Rcrowd.prunk.pu, refmodel1.summary$Rdisp.prunk.pu,ref
                     c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
                     c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 3
                     ),         
-         border = 'NA', las=1, ll = 0.1, beanlinewd = 2,
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
          what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
 
   # add points for observed values
@@ -292,7 +292,7 @@ dev.print(pdf, file="plot.network.beans.pdf")
 ## Aggression strategies
 summary of number of runs per strategy and plot those with observed strategie in caption
 
-```{r}
+```{r, network.beans, cache=FALSE, fig.height=4, fig.width=5.75}
 # observed strategies
 observed.summary$strategy.Obcrowd # "pure bully"
 observed.summary$strategy.Obdisp  # "pure bully"
@@ -326,12 +326,15 @@ strategies$behavior<-factor(strategies$behavior,
                             labels = c("ref1 crowds", "ref1 displace", "ref2 displace"))
 
 ggplot(strategies, aes(x=behavior, y=n, fill=strategy)) +
-  geom_col(aes(group= strategy)) +
+  geom_col(aes(group= strategy), colour= beanborder) +
   theme_classic() +
   labs(y="percentage", x="", caption = "observed crowd = bullying \nobserved displace = bullying \nobserved pooled = bullying") +
   theme(plot.caption=element_text(hjust = 0) ) +
   scale_fill_manual(values=c(alpha("lightgrey", 0.4),alpha("red", 0.4), alpha("blue", 0.4), alpha("black", 0.6)))  
 
+
+# save plot
+dev.print(pdf, file="plot.strategies.pdf")
 ```
 
 
