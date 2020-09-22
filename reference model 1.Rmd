@@ -16,6 +16,9 @@ library(stringr)
 library(purrr)
 library(EloRating)
 library(domstruc) #install_github("danm0nster/domstruc")
+library(vegan) # mantel test
+library(igraph)
+library(einet)
 ```
 
 # Import data
@@ -234,6 +237,8 @@ ref.model <- ANALYZE_refmodeldata
 How are displacements and crowds correlated in the random runs?
 NOTE: the package plyr conflicts with the package dplyr causing some weird behavior. Be VERY CAREFUL if you are using both! You can use detach(package:plyr) to de-activate plyr later in a script
 
+NOTE: we perform a correlation matrix when we summarize our reference model 
+
 ```{r}
 head(ref.model)
 
@@ -264,7 +269,7 @@ for(run in 1:replicates){
   run.data <- subset(ref.model, runID==run.code)
   run.corr <- subset(COR.refmodel, runID==run.code)
   with (run.data, plot (random.displace, random.crowd, main=paste0(run.code, " Correlation=", round(run.corr$COR, 2))))
-  with (run.data, abline(lm(random.crowd~random.displace), col="grey")) # regression line (y~x)
+  
 }
 
 # WRITE DATA
@@ -366,20 +371,36 @@ ref.model.summaries <- data.frame(run.code=character(),
                                   prop.Rdisplace=numeric(), 
                                   n.Rcrowd.dyads=numeric(), 
                                   n.Rdisplace.dyads=numeric(),
-                                  Rcrowd.density=numeric(), 
-                                  Rdisplace.density=numeric(),
+                                  Rcrowd.degree=numeric(),
+                                  Rcrowd.strength=numeric(),
+                                  Rcrowd.between=numeric(),
+                                  Rcrowd.ec=numeric(), 
+                                  Rcrowd.ec.value=numeric(),
+                                  Rcrowd.apl=numeric(),
+                                  Rcrowd.ei=numeric(),
+                                  Rcrowd.eff=numeric(),
                                   Rcrowd.linearity=numeric(), 
                                   Rcrowd.steepness=numeric(), 
-                                  Rcrowd.prunk.pu=numeric(), 
-                                  Rcrowd.prunk.dyads=numeric(),
                                   Rcrowd.transi.Pt=numeric(), 
                                   Rcrowd.transi.ttri=numeric(),
+                                  Rdisp.degree=numeric(),
+                                  Rdisp.strength=numeric(),
+                                  Rdisp.between=numeric(),
+                                  Rdisp.ec=numeric(), 
+                                  Rdisp.ec.value=numeric(),
+                                  Rdisp.apl=numeric(),
+                                  Rdisp.ei=numeric(),
+                                  Rdisp.eff=numeric(),
                                   Rdisp.linearity=numeric(), 
                                   Rdisp.steepness=numeric(), 
-                                  Rdisp.prunk.pu=numeric(), 
-                                  Rdisp.prunk.dyads=numeric(),
                                   Rdisp.transi.Pt=numeric(), 
-                                  Rdisp.transi.ttri=numeric()
+                                  Rdisp.transi.ttri=numeric(),
+                                  Rcrowd.density=numeric(), 
+                                  Rdisplace.density=numeric(),
+                                  Rcrowd.prunk.pu=numeric(), 
+                                  Rcrowd.prunk.dyads=numeric(),
+                                  Rdisp.prunk.pu=numeric(), 
+                                  Rdisp.prunk.dyads=numeric()
                                   )
 #run=2
 
@@ -418,7 +439,7 @@ for(run in 1:replicates){
                                 )
   #str(Rcd.basic)
   
-  # START NETWORK ANALYSES
+  ## START NETWORK ANALYSES ----
   ref.modelW0s <- merge(dyad.list, run.data, all.x=TRUE,
                        by=c("actor", "subject")) #head(run.dataW0s)
   
@@ -440,17 +461,45 @@ for(run in 1:replicates){
   ref.crowd.mx[is.na(ref.crowd.mx)] <- 0 #for linearity measure, matrix needs to be fully filled, no NAs
   ref.crowd.mx <- matrix.please(ref.crowd.mx)
   
+   graph.ref.crowd <- graph_from_adjacency_matrix(ref.crowd.mx, "directed", weighted=T, diag=F)
+  
+# individual metrics   
+  #out-degree
+  Rcrowd.degree <- igraph::degree(graph.ref.crowd, mode = c("out"))
+  
+  # out-strength
+  #E(graph.ref.crowd)$weight
+  Rcrowd.strength <- strength(graph.ref.crowd, mode = c("out"), weights = E(graph.ref.crowd)$weight)
+  
+   # betweenness centrality
+   Rcrowd.between <- igraph::betweenness(graph.ref.crowd, directed = TRUE,
+                                         weights = E(graph.ref.crowd)$weight)
+   
+  # eigenvector centrality
+  Rcrowd.eigen <- eigen_centrality(graph.ref.crowd, directed = TRUE, weights = E(graph.ref.crowd)$weight)
+  Rcrowd.ec <- Rcrowd.eigen$vector
+  Rcrowd.ec.value <- Rcrowd.eigen$value
+  
+# group based metrics  
+  # average path length
+  Rcrowd.apl <- mean_distance(graph.ref.crowd, directed = TRUE) #average.path.length(graph.ref.crowd) 
+  
+  # efficiency
+  Rcrowd.ei <- effective_information(graph.ref.crowd, effectiveness = FALSE)
+  Rcrowd.eff <- Rcrowd.ei/log2(length(bird.list))
+  
+  #Find proportion unknown relationships, a measure of sparseness
+  Rcrowd.prunk <- EloRating::prunk(ref.crowd.mx)
+  Rcrowd.prunk.pu <- as.numeric(Rcrowd.prunk[1])
+  Rcrowd.prunk.dyads <- as.numeric(Rcrowd.prunk[2])
+  
+# dominance  
   #Find linearity
   lin.crowd<- EloRating::h.index(ref.crowd.mx, loops = 1000)
   Rcrowd.linearity <- lin.crowd[3,2]
 
   #Find steepness
   Rcrowd.steepness <- steepness::getStp(ref.crowd.mx, method="Dij")
-  
-  #Find proportion unknown relationships, a measure of sparseness
-  Rcrowd.prunk <- EloRating::prunk(ref.crowd.mx)
-  Rcrowd.prunk.pu <- as.numeric(Rcrowd.prunk[1])
-  Rcrowd.prunk.dyads <- as.numeric(Rcrowd.prunk[2])
   
   #Triangle transitivity
   Rcrowd.transi <- EloRating::transitivity(ref.crowd.mx, runs = 1000)
@@ -459,7 +508,12 @@ for(run in 1:replicates){
   
   
   ### POOL crowd hierarchy
-  Rcrowd.hier <- cbind.data.frame(
+  Rcrowd.hier <- cbind.data.frame(Rcrowd.degree,
+                                  Rcrowd.strength, 
+                                  Rcrowd.between,
+                                  Rcrowd.ec, Rcrowd.ec.value,
+                                  Rcrowd.apl,
+                                  Rcrowd.eff,
                                   Rcrowd.linearity, 
                                   Rcrowd.steepness, 
                                   Rcrowd.prunk.pu, Rcrowd.prunk.dyads,
@@ -472,6 +526,39 @@ for(run in 1:replicates){
   ref.disp.mx[is.na(ref.disp.mx)] <- 0
   ref.disp.mx <- matrix.please(ref.disp.mx)
   
+   # network
+  graph.ref.displace <- graph_from_adjacency_matrix(ref.disp.mx, "directed", weighted=T, diag=F)
+
+# individual    
+  #out-degree
+  Rdisp.degree <- igraph::degree(graph.ref.displace, mode = c("out"))
+  
+   # strength
+   Rdisp.strength <- strength(graph.ref.displace, mode = c("out"), weights = E(graph.ref.displace)$weight)
+  
+   # betweenness centrality
+   Rdisp.between <- igraph::betweenness(graph.ref.displace, directed = TRUE,
+                                    weights = E(graph.ref.displace)$weight)
+   
+  # eigenvector centrality
+  Rdisp.eigen <- eigen_centrality(graph.ref.displace, directed = TRUE, weights = E(graph.ref.displace)$weight)
+  Rdisp.ec <- Rdisp.eigen$vector
+  Rdisp.ec.value <- Rdisp.eigen$value
+  
+# group  
+  # average path length
+  Rdisp.apl <- mean_distance(graph.ref.displace) #average.path.length(graph.ref.disp)
+  
+  # efficiency
+  Rdisp.ei <- effective_information(graph.ref.displace, effectiveness = FALSE)
+  Rdisp.eff <- Rdisp.ei/log2(length(bird.list))
+  
+  #Find proportion unknown relationships, a measure of sparseness
+  Rdisp.prunk <- EloRating::prunk(ref.disp.mx)
+  Rdisp.prunk.pu <- as.numeric(Rdisp.prunk[1])
+  Rdisp.prunk.dyads <- as.numeric(Rdisp.prunk[2])
+  
+# dominance  
   #Find linearity
   lin.disp<- EloRating::h.index(ref.disp.mx, loops = 1000)
   Rdisp.linearity <- lin.disp[3,2]
@@ -479,28 +566,34 @@ for(run in 1:replicates){
   #Find steepness
   Rdisp.steepness <- steepness::getStp(ref.disp.mx, method="Dij")
   
-  #Find proportion unknown relationships, a measure of sparseness
-  Rdisp.prunk <- EloRating::prunk(ref.disp.mx)
-  Rdisp.prunk.pu <- as.numeric(Rdisp.prunk[1])
-  Rdisp.prunk.dyads <- as.numeric(Rdisp.prunk[2])
-  
   #Triangle transitivity
   Rdisp.transi <- EloRating::transitivity(ref.disp.mx, runs = 1000)
   Rdisp.transi.Pt <- Rdisp.transi[1]  # proportion of transitive triads
   Rdisp.transi.ttri <- Rdisp.transi[2]  # triangle transitivity
   
 
-  
   #### POOL displace hierarchy
   Rdisp.hier <- cbind.data.frame(
+                                  Rdisp.degree,
+                                  Rdisp.strength, 
+                                  Rdisp.between,
+                                  Rdisp.ec,Rdisp.ec.value,
+                                  Rdisp.apl,
+                                  Rdisp.eff,
                                   Rdisp.linearity, 
                                   Rdisp.steepness, 
                                   Rdisp.prunk.pu, Rdisp.prunk.dyads,
                                   Rdisp.transi.Pt, Rdisp.transi.ttri
                                   )
   
+   ### matrix correlation
+  ref1.cor.result <- mantel(ref.crowd.mx, ref.disp.mx, method = "spearman") # vegan package
+  ref1.cor.matrix <- ref1.cor.result$statistic
+  
+  #Rcor<-cbind.data.frame(ref1.cor.matrix)
+  
   # POOL ALL DATA
-  run.sums <- cbind.data.frame(Rcd.basic, Rcrowd.hier, Rdisp.hier)
+  run.sums <- cbind.data.frame(Rcd.basic, Rcrowd.hier, Rdisp.hier, ref1.cor.matrix)
   ref.model.summaries <- rbind(ref.model.summaries, run.sums)
 }
 
@@ -514,7 +607,7 @@ head(ref.model.summaries)
 
 
 # write data
-write.csv(ref.model.summaries, "ANALYZE-SUMM.refmodel.csv")
+write.csv(ref.model.summaries, "ANALYZE-SUMM.refmodel1.csv")
 
 ```
 
