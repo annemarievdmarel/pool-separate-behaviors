@@ -400,7 +400,10 @@ ref.model.summaries <- data.frame(run.code=character(),
                                   Rcrowd.prunk.pu=numeric(), 
                                   Rcrowd.prunk.dyads=numeric(),
                                   Rdisp.prunk.pu=numeric(), 
-                                  Rdisp.prunk.dyads=numeric()
+                                  Rdisp.prunk.dyads=numeric(),
+                                  R.cor.strength=numeric(),
+                                  R.cor.between=numeric(),
+                                  R.cor.eigen=numeric()
                                   )
 #run=2
 
@@ -590,10 +593,18 @@ for(run in 1:replicates){
   ref1.cor.result <- mantel(ref.crowd.mx, ref.disp.mx, method = "spearman") # vegan package
   ref1.cor.matrix <- ref1.cor.result$statistic
   
-  #Rcor<-cbind.data.frame(ref1.cor.matrix)
+  
+   ## correlation individual-based metric
+  R.cor.strength <- cor(Rcrowd.strength, Rdisp.strength,  
+               method = "spearman")
+  R.cor.between <- cor(Rcrowd.between, Rdisp.between,  
+               method = "spearman")
+  R.cor.eigen <- cor(Rcrowd.ec, Rdisp.ec,  
+               method = "spearman")
+  
   
   # POOL ALL DATA
-  run.sums <- cbind.data.frame(Rcd.basic, Rcrowd.hier, Rdisp.hier, ref1.cor.matrix)
+  run.sums <- cbind.data.frame(Rcd.basic, Rcrowd.hier, Rdisp.hier, ref1.cor.matrix, R.cor.strength, R.cor.between, R.cor.eigen )
   ref.model.summaries <- rbind(ref.model.summaries, run.sums)
 }
 
