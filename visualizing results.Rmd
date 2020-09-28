@@ -171,6 +171,9 @@ plot.ref1.strength<- ggplot(data = observed.summary.individual, aes(x = Obdisp.s
   ylab("crowd") +
   geom_jitter(col=alpha(obs.vals, pooled.alpha))
 
+plot.ref1.strength + 
+  geom_text( aes(label = X), check_overlap = TRUE)
+
 plot.ref2.strength<- ggplot(data = observed.summary.individual, aes(x = Obdisp.strength, y = Obcrowd.strength)) +
   theme_classic() + 
   ggtitle("out strength") +
@@ -178,7 +181,7 @@ plot.ref2.strength<- ggplot(data = observed.summary.individual, aes(x = Obdisp.s
   ylab("crowd") +
   geom_jitter(data = bg_refmodel2, aes(Rdisp.strength, y = Rcrowd.strength), colour = col.ltgn, alpha = bean.alpha) +
   geom_jitter(col=alpha(obs.vals, pooled.alpha))
-plot.ref2.strength
+
 
 # betweenness
 plot.ref1.between<-ggplot(data = observed.summary.individual, aes(x = Obdisp.between, y = Obcrowd.between)) +
@@ -189,6 +192,9 @@ plot.ref1.between<-ggplot(data = observed.summary.individual, aes(x = Obdisp.bet
   ylab("crowd") +
   geom_jitter(col=alpha(obs.vals, pooled.alpha)) 
 
+plot.ref1.between +
+  geom_text( aes(label = X), check_overlap = TRUE)
+
 plot.ref2.between<-ggplot(data = observed.summary.individual, aes(x = Obdisp.between, y = Obcrowd.between)) +
   theme_classic() + 
   ggtitle("betweenness centrality") +
@@ -196,6 +202,7 @@ plot.ref2.between<-ggplot(data = observed.summary.individual, aes(x = Obdisp.bet
   ylab("crowd") +
   geom_jitter(data = bg_refmodel2, aes(Rdisp.between, y = Rcrowd.between), colour = col.ltgn, alpha = bean.alpha) +
   geom_jitter(col=alpha(obs.vals, pooled.alpha)) 
+
 
 # eigenvector
 plot.ref1.eigen<-ggplot(data = observed.summary.individual, aes(x = Obdisp.ec, y = Obcrowd.ec)) +
@@ -214,7 +221,10 @@ plot.ref2.eigen<-ggplot(data = observed.summary.individual, aes(x = Obdisp.ec, y
   xlab("displace") + 
   ylab("crowd") +
   geom_jitter(data = bg_refmodel2, aes(Rdisp.ec, y = Rcrowd.ec), colour = col.ltgn, alpha = bean.alpha) + 
-  geom_jitter(col=alpha(obs.vals, pooled.alpha)) 
+  geom_jitter(col=alpha(obs.vals, pooled.alpha))
+
+plot.ref2.eigen +
+  geom_text( aes(label = X), check_overlap = TRUE)
   #geom_smooth(method=lm, se=FALSE, col = alpha(obs.vals, pooled.alpha)) +
   #geom_smooth(data = bg_refmodel2, aes(x=Rdisp.ec, y=Rcrowd.ec), colour = col.ltgn, alpha = bean.alpha, method = lm, se = FALSE)
   #geom_text(x=0.85, y=0.75, label="p = ", color="col.dkgn") +
@@ -327,6 +337,8 @@ prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.eigen<obs
 p.ref2.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
 p.ref2.ec
 ```
+
+
 
 
 
