@@ -35,18 +35,17 @@ library(ggpubr)
 # summaries
 observed.summary <- read.csv("ANALYZE-SUMM.observed.csv")
 head(observed.summary)
-observed.summary.individual<- read.csv("ANALYZE-SUMM.observed.individual.csv")
-observed.ID<-rename(observed.summary.individual, ID = X)
+observed.summary.individual<- read.csv("ANALYZE-SUMM.observed.indiviudal.csv")
 
-refmodel1.summary<- read.csv("ANALYZE-SUMM.refmodel1.csv")  # reference model 1
-refmodel1.summary<- separate(refmodel1.summary, X, c("ID", "no."), sep = 3) %>% select(-no.)
+refmodel1.summary<- read.csv("ANALYZE-SUMM.refmodel1.csv") # reference model 1
 head(refmodel1.summary)
-refmodel1.summary.group <- refmodel1.summary %>% group_by(run.code) %>% slice(1) 
+refmodel1.summary.group <- refmodel1.summary %>% group_by(run.code) %>% slice(1) %>%
+  select(-X)
 
 refmodel2.summary<-read.csv("ANALYZE-SUMM.refmodel2.csv") # reference model 2
-refmodel2.summary<- separate(refmodel2.summary, X, c("ID", "no."), sep = 3) %>% select(-no.)
 head(refmodel2.summary)
-refmodel2.summary.group <- refmodel2.summary %>% group_by(run.code) %>% slice(1) 
+refmodel2.summary.group <- refmodel2.summary %>% group_by(run.code) %>% slice(1) %>%
+  select(-X)
 
 # reference model strategies
 refmodel1.strategies <- read.csv("ANALYZE_SUMM.refmodel.strategies.csv") 
@@ -151,158 +150,179 @@ beanplot(refmodel1.summary.group$run.cor, refmodel2.summary.group$run.cor,
 
 abline(h=observed.summary$obs.cor, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
 ```
-
 ## individual-based measures
 
+all 
+```{r}
+# degree
+ggplot(refmodel1.summary, aes(x=Rdisp.degree, y=Rcrowd.degree)) +
+  geom_jitter(aes(color=factor(run.code)), alpha = .1) +
+  theme_classic() + 
+  #geom_smooth() + 
+   labs(main= "out-degree", x = "displace" , y = "crowd")  +
+  theme(legend.position = "none") +
+  geom_jitter(data = observed.summary.individual, aes(x = Obdisp.degree, y = Obcrowd.degree), col=alpha(obs.vals, pooled.alpha)) 
 
-#ggplot - separate plots per ref model
+  #if in 1 plot
+# 
+#  geom_line(data = refmodel2.summary, aes(x=Rdisp.degree, y=Rcrowd.degree, #color=factor(run.code)), alpha = .1 ) +
+#  geom_smooth(data = refmodel2.summary, aes(x=Rdisp.degree, y=Rcrowd.degree))
+
+ggplot(refmodel2.summary, aes(x=Rdisp.degree, y=Rcrowd.degree)) +
+  geom_jitter(aes(color=factor(run.code)), alpha = .1) +
+  scale_color_grey() +
+  theme_classic() + 
+  #geom_smooth() + 
+   labs(main= "out-degree", x = "displace" , y = "crowd") +
+  theme(legend.position = "none") +
+  geom_jitter(data = observed.summary.individual, aes(x = Obdisp.degree, y = Obcrowd.degree), col=alpha(obs.vals, pooled.alpha))
+
+
+# out strength
+plot.ref1.strength<- ggplot(refmodel1.summary, aes(x=Rdisp.strength, y=Rcrowd.strength)) +
+  geom_jitter(aes(color=factor(run.code)), alpha = .1) +
+  theme_classic() + 
+  #geom_smooth() + 
+   ggtitle( "ref model 1" ,subtitle = "out strength") +
+  xlab("displace") + 
+  ylab("crowd") + 
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+  geom_jitter(data = observed.summary.individual, aes(x = Obdisp.strength, y = Obcrowd.strength), col=alpha(obs.vals, pooled.alpha)) 
+ # +  annotate(geom="text", x=180, y=180, label= "p crowd = 0.36",
+ #              color="black")
+plot.ref1.strength
+
+plot.ref2.strength<- ggplot(refmodel2.summary, aes(x=Rdisp.strength, y=Rcrowd.strength)) +
+  geom_jitter(aes(color=factor(run.code)), alpha = .1) +
+  theme_classic() + 
+  #geom_smooth() + 
+   ggtitle("ref model 2", subtitle = "out strength") +
+  xlab("displace") + 
+  ylab("crowd") + 
+ theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+  geom_jitter(data = observed.summary.individual, aes(x = Obdisp.strength, y = Obcrowd.strength), col=alpha(obs.vals, pooled.alpha)) 
+plot.ref2.strength
+
+#betweenness
+plot.ref1.between <- ggplot(refmodel1.summary, aes(x=Rdisp.between, y=Rcrowd.between)) +
+  geom_jitter(aes(color=factor(run.code)), alpha = .1) +
+  theme_classic() + 
+  #geom_smooth() + 
+   ggtitle("",subtitle = "betweenness centrality") +
+  xlab("displace") + 
+  ylab("crowd")  +
+  theme(legend.position = "none") +
+  geom_jitter(data = observed.summary.individual, aes(x = Obdisp.between, y = Obcrowd.between), col=alpha(obs.vals, pooled.alpha)) 
+plot.ref1.between
+
+plot.ref2.between <- ggplot(refmodel2.summary, aes(x=Rdisp.between, y=Rcrowd.between)) +
+  geom_jitter(aes(color=factor(run.code)), alpha = .1) +
+  theme_classic() + 
+  #geom_smooth() + 
+   ggtitle("",subtitle = "betweenness centrality") +
+  xlab("displace") + 
+  ylab("crowd")  +
+  theme(legend.position = "none") +
+  geom_jitter(data = observed.summary.individual, aes(x = Obdisp.between, y = Obcrowd.between), col=alpha(obs.vals, pooled.alpha)) 
+plot.ref2.between
+
+# eigenvector 
+plot.ref1.eigen <- ggplot(refmodel1.summary, aes(x=Rdisp.ec, y=Rcrowd.ec)) +
+  geom_jitter(aes(color=factor(run.code)), alpha = .1) +
+  theme_classic() + 
+  #geom_smooth() + 
+   ggtitle("",subtitle = "eigenvector centrality") +
+  xlab("displace") + 
+  ylab("crowd")  +
+  theme(legend.position = "none") +
+  geom_jitter(data = observed.summary.individual, aes(x = Obdisp.ec, y = Obcrowd.ec), col=alpha(obs.vals, pooled.alpha)) 
+plot.ref1.eigen
+
+
+plot.ref2.eigen <- ggplot(refmodel2.summary, aes(x=Rdisp.ec, y=Rcrowd.ec)) +
+  geom_jitter(aes(color=factor(run.code)), alpha = .1) +
+  theme_classic() + 
+  #geom_smooth() + 
+   ggtitle("",subtitle = "eigenvector centrality") +
+  xlab("displace") + 
+  ylab("crowd")  +
+  theme(legend.position = "none") +
+  geom_jitter(data = observed.summary.individual, aes(x = Obdisp.ec, y = Obcrowd.ec), col=alpha(obs.vals, pooled.alpha)) 
+plot.ref2.eigen
+
+plot.indvidual.clr <- ggarrange(plot.ref1.strength, plot.ref2.strength,
+                            plot.ref1.between, plot.ref2.between, 
+                            plot.ref1.eigen, plot.ref1.eigen, 
+                            nrow = 3, ncol = 2)
+plot.indvidual.clr
+ggexport(plot.indvidual.clr, filename = "plot.individual.clr.pdf")
+
+```
+
+
+ggplot - reference models in background
 https://drsimonj.svbtle.com/plotting-background-data-for-groups-with-ggplot2
 ```{r}
 bg_refmodel1 <- select(refmodel1.summary, -run.code)
 bg_refmodel2 <- select(refmodel2.summary, -run.code)
 
 
-# out strength
-plot.ref1.strength<- ggplot(data = observed.summary.individual, aes(x = Obdisp.strength, y = Obcrowd.strength)) +
-  geom_jitter(data = bg_refmodel1, aes(Rdisp.strength, y = Rcrowd.strength), colour = col.dkgn, alpha = bean.alpha) +
+# degree
+plot.degree <- ggplot(data = observed.summary.individual, aes(x = Obdisp.degree, y = Obcrowd.degree)) +
+  geom_jitter(data = bg_refmodel1, aes(Rdisp.degree, y = Rcrowd.degree), colour = col.dkgn, alpha = bean.alpha) +
+  geom_jitter(col=alpha(obs.vals, pooled.alpha)) +
   theme_classic() + 
-  ggtitle("out strength") +
-  xlab("displace") + 
-  ylab("crowd") +
-  geom_jitter(col=alpha(obs.vals, pooled.alpha))
+  labs(main= "out-degree", x = "displace" , y = "crowd") +
+  geom_jitter(data = bg_refmodel2, aes(Rdisp.degree, y = Rcrowd.degree), colour = col.ltgn, alpha = bean.alpha) 
 
-plot.ref1.strength + 
-  geom_text( aes(label = X), check_overlap = TRUE)
+ # theme(legend.position = "none") +
+ # geom_jitter(data = observed.summary.individual, aes(x = Obdisp.degree, y = Obcrowd.degree)) +
+ #geom_line(data = refmodel2.summary, aes(x=Rdisp.degree, y=Rcrowd.degree, color=factor(run.code)), alpha = .1 ) +
+ #geom_smooth(data = refmodel2.summary, aes(x=Rdisp.degree, y=Rcrowd.degree))
 
-plot.ref2.strength<- ggplot(data = observed.summary.individual, aes(x = Obdisp.strength, y = Obcrowd.strength)) +
+# out strength
+plot.strength<- ggplot(data = observed.summary.individual, aes(x = Obdisp.strength, y = Obcrowd.strength)) +
+  geom_jitter(data = bg_refmodel1, aes(Rdisp.strength, y = Rcrowd.strength), colour = col.dkgn, alpha = bean.alpha) +
   theme_classic() + 
   ggtitle("out strength") +
   xlab("displace") + 
   ylab("crowd") +
   geom_jitter(data = bg_refmodel2, aes(Rdisp.strength, y = Rcrowd.strength), colour = col.ltgn, alpha = bean.alpha) +
   geom_jitter(col=alpha(obs.vals, pooled.alpha))
-
+plot.strength
 
 # betweenness
-plot.ref1.between<-ggplot(data = observed.summary.individual, aes(x = Obdisp.between, y = Obcrowd.between)) +
+plot.between<-ggplot(data = observed.summary.individual, aes(x = Obdisp.between, y = Obcrowd.between)) +
   geom_jitter(data = bg_refmodel1, aes(Rdisp.between, y = Rcrowd.between), colour = col.dkgn, alpha = bean.alpha) +
-  theme_classic() + 
-  ggtitle("betweenness centrality") +
-  xlab("displace") + 
-  ylab("crowd") +
-  geom_jitter(col=alpha(obs.vals, pooled.alpha)) 
-
-plot.ref1.between +
-  geom_text( aes(label = X), check_overlap = TRUE)
-
-plot.ref2.between<-ggplot(data = observed.summary.individual, aes(x = Obdisp.between, y = Obcrowd.between)) +
   theme_classic() + 
   ggtitle("betweenness centrality") +
   xlab("displace") + 
   ylab("crowd") +
   geom_jitter(data = bg_refmodel2, aes(Rdisp.between, y = Rcrowd.between), colour = col.ltgn, alpha = bean.alpha) +
   geom_jitter(col=alpha(obs.vals, pooled.alpha)) 
-
+plot.between
 
 # eigenvector
-plot.ref1.eigen<-ggplot(data = observed.summary.individual, aes(x = Obdisp.ec, y = Obcrowd.ec)) +
+plot.eigen<-ggplot(data = observed.summary.individual, aes(x = Obdisp.ec, y = Obcrowd.ec)) +
   geom_jitter(data = bg_refmodel1, aes(Rdisp.ec, y = Rcrowd.ec), colour = col.dkgn, alpha = bean.alpha) +
   theme_classic() + 
   ggtitle("eigenvector centrality") +
   xlab("displace") + 
   ylab("crowd") +
-  geom_jitter(col=alpha(obs.vals, pooled.alpha))
-  #geom_text(x=0.85, y=0.75, label="p = ", color="col.dkgn") +
-  #geom_text(x=0.85, y=0.65, label="p = ", color="col.ltgn") 
-
-plot.ref2.eigen<-ggplot(data = observed.summary.individual, aes(x = Obdisp.ec, y = Obcrowd.ec)) +
-  theme_classic() + 
-  ggtitle("eigenvector centrality") +
-  xlab("displace") + 
-  ylab("crowd") +
   geom_jitter(data = bg_refmodel2, aes(Rdisp.ec, y = Rcrowd.ec), colour = col.ltgn, alpha = bean.alpha) + 
-  geom_jitter(col=alpha(obs.vals, pooled.alpha))
-
-plot.ref2.eigen +
-  geom_text( aes(label = X), check_overlap = TRUE)
-  #geom_smooth(method=lm, se=FALSE, col = alpha(obs.vals, pooled.alpha)) +
-  #geom_smooth(data = bg_refmodel2, aes(x=Rdisp.ec, y=Rcrowd.ec), colour = col.ltgn, alpha = bean.alpha, method = lm, se = FALSE)
+  geom_jitter(col=alpha(obs.vals, pooled.alpha)) +
   #geom_text(x=0.85, y=0.75, label="p = ", color="col.dkgn") +
   #geom_text(x=0.85, y=0.65, label="p = ", color="col.ltgn") 
+plot.eigen
+# other colors: "#FDDBC7" , "#D1E5F0"
 
-
-plot.ref.indvidual <- ggarrange(plot.ref1.strength,plot.ref1.between, plot.ref1.eigen,plot.ref2.strength,plot.ref2.between, plot.ref2.eigen,
-                            nrow = 2, ncol = 3)
-plot.ref.indvidual
-ggexport(plot.ref.indvidual, filename = "plot.ref.individual.pdf")
+plot.indvidual <- ggarrange(plot.strength,
+                            plot.between, plot.eigen,
+                            nrow = 3, ncol = 1)
+plot.indvidual
+ggexport(plot.indvidual, filename = "plot.individual.pdf")
 ```
 
-
-# Distribution plots of correlation strength ref model 1 and ref model 2 + observed value
-
-```{r}
-par(mfrow=c(1,3))
-
-# out strength
-beanplot(refmodel1.summary$R.cor.strength, refmodel2.summary$R.cor.strength, 
-         main="out-strength", 
-         ylab="Spearman's rho", log = "",
-         xlab = "",  ylim=c(-0.2, 1.0),
-         #add custom bean colorscrowds
-           col = list(c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 2
-                    ),
-        
-         border = beanborder, 
-         las=1, 
-         ll = 0.01, beanlinewd = 2,
-         cutmin=0, cutmax=1,
-         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
-
-abline(h=observed.summary$obs.cor.strength, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
-
-# betweenness centrality
-beanplot(refmodel1.summary$R.cor.between, refmodel2.summary$R.cor.between, 
-         main="betweenness centrality", 
-         ylab="Spearman's rho", log = "",
-         xlab = "",  ylim=c(-0.2, 1.0),
-         #add custom bean colorscrowds
-           col = list(c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 2
-                    ),
-        
-         border = beanborder, 
-         las=1, 
-         ll = 0.01, beanlinewd = 2,
-         cutmin=0, cutmax=1,
-         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
-
-abline(h=observed.summary$obs.cor.between, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
-
-
-# eigenvector centrality
-beanplot(refmodel1.summary$R.cor.eigen, refmodel2.summary$R.cor.eigen, 
-         main="eigenvector centrality", 
-         ylab="Spearman's rho", log = "",
-         xlab = "",  ylim=c(-0.2, 1.0),
-         #add custom bean colorscrowds
-           col = list(c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 2
-                    )  
-         ,
-         border = beanborder, 
-         las=1, 
-         ll = 0.01, beanlinewd = 2,
-         cutmin=0, cutmax=1,
-         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
-
-abline(h=observed.summary$obs.cor.eigen, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC
-
-# save plot
-dev.print(pdf, file="plot.indvidual.cor.beans.pdf")
-  
-
-```
 Are observed values significantly different from random values in reference models?
 
 find proportion of random values less than the observed values, you can use this as a kind of p value. p should be >0.975 for two-tailed test, >0.95 for one-tailed test for something significantly different from the random values in the reference model
@@ -310,38 +330,58 @@ find proportion of random values less than the observed values, you can use this
 ```{r}
 # p-values 
 
-# out-strength
-prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.strength<observed.summary$obs.cor.strength, ])/nrow(refmodel1.summary.group) 
-p.ref1.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref1.strength
+# out-degree
+prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rcrowd.degree<observed.summary.individual$Obcrowd.degree, ])/nrow(refmodel1.summary) 
+p.ref1.crowd.degree<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.crowd.degree
 
-prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.strength<observed.summary$obs.cor.strength, ])/nrow(refmodel2.summary.group) 
+prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rdisp.degree<observed.summary.individual$Obdisp.degree, ])/nrow(refmodel1.summary) 
+p.ref1.disp.degree<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.disp.degree
+
+prop.val <- nrow(refmodel2.summary[refmodel2.summary$Rdisp.degree<observed.summary$Obcrowd.degree, ])/nrow(refmodel2.summary.group) 
+p.ref2.degree<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref2.degree
+
+# out-strength
+prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rcrowd.strength<observed.summary.individual$Obcrowd.strength, ])/nrow(refmodel1.summary.group) 
+p.ref1.crowd.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.crowd.strength
+
+prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rdisp.strength<observed.summary.individual$Obdisp.strength, ])/nrow(refmodel1.summary) 
+p.ref1.disp.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.disp.strength
+
+prop.val <- nrow(refmodel2.summary[refmodel2.summary$Rdisp.strength<observed.summary.individual$Obcrowd.steepness, ])/nrow(refmodel2.summary) 
 p.ref2.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
 p.ref2.strength
 
 # betweenness
-prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.between<observed.summary$obs.cor.between, ])/nrow(refmodel1.summary.group) 
-p.ref1.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref1.between
+prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rcrowd.between<observed.summary.individual$Obcrowd.between, ])/nrow(refmodel1.summary.group) 
+p.ref1.crowd.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.crowd.between
 
-prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.between<observed.summary$obs.cor.between, ])/nrow(refmodel2.summary.group) 
+prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rdisp.between<observed.summary.individual$Obdisp.between, ])/nrow(refmodel1.summary) 
+p.ref1.disp.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.disp.between
+
+prop.val <- nrow(refmodel2.summary[refmodel2.summary$Rdisp.between<observed.summary.individual$Obcrowd.between, ])/nrow(refmodel2.summary) 
 p.ref2.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
 p.ref2.between
 
 # eigenvector
-prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.eigen<observed.summary$obs.cor.eigen, ])/nrow(refmodel1.summary.group) 
-p.ref1.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref1.ec
+prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rcrowd.ec<observed.summary.individual$Obcrowd.ec, ])/nrow(refmodel1.summary.group) 
+p.ref1.crowd.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.crowd.ec
 
-prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.eigen<observed.summary$obs.cor.eigen, ])/nrow(refmodel2.summary.group) 
+prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rdisp.ec<observed.summary.individual$Obdisp.ec, ])/nrow(refmodel1.summary) 
+p.ref1.disp.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.disp.ec
+
+prop.val <- nrow(refmodel2.summary[refmodel2.summary$Rdisp.ec<observed.summary.individual$Obcrowd.ec, ])/nrow(refmodel2.summary) 
 p.ref2.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
 p.ref2.ec
 ```
-
-
-
-
-
 Group-based metrics
 
 
@@ -466,7 +506,7 @@ par(mfrow=c(1,3))
 # linearity
 beanplot(refmodel1.summary.group$Rcrowd.linearity, refmodel1.summary.group$Rdisp.linearity, refmodel2.summary.group$Rdisp.linearity, 
          main="Linearity", 
-         ylab="h'", log = "", ylim = ylim,
+         ylab="h index", log = "", ylim = ylim,
          xlab = "", names = xlabels, 
          
          #add custom bean colorscrowds
@@ -634,20 +674,17 @@ strategies.Rcrowd<-group_by(ref.model.strategies, strategy.Rcrowd) %>%
   tally() %>% 
   mutate(behavior="crowd") %>%
   rename(strategy=strategy.Rcrowd) %>%
-  add_row(strategy="close.competitor",n= 0, behavior="crowd") 
-# 99% of reference runs consistent with observed pattern
+  add_row(strategy="close.competitor",n= 0, behavior="crowd")
 strategies.Rdisp<-group_by(ref.model.strategies, strategy.Rdisp) %>%
   summarise(n=n()) %>% 
   mutate(behavior="displace") %>%
   rename(strategy=strategy.Rdisp) %>%
   add_row(strategy="close.competitor",n= 0, behavior="displace")
-# 100% of reference runs consistent with observed pattern
 strategies.sparse<-group_by(ref.model.strategies, strategy.sparse) %>%
   summarise(n=n()) %>% 
   mutate(behavior="sparse displace") %>%
   rename(strategy=strategy.sparse) %>%
   add_row(strategy="close.competitor",n= 0, behavior="sparse displace")
-# 43% of reference runs consistent with observed pattern
 strategies<-rbind(strategies.Rcrowd, strategies.Rdisp, strategies.sparse)
 
 strategies$strategy<-factor(strategies$strategy, 
@@ -669,16 +706,6 @@ ggplot(strategies, aes(x=behavior, y=n, fill=strategy)) +
 # save plot
 dev.print(pdf, file="plot.strategies.pdf")
 ```
-
-proportion (percentage) of reference model runs that are consistent with observed pattern. 
-```{r}
-# ref model 1 crowds
-sum.ref1.crowds<- 
-
-
-```
-
-
 
 ## supplemental info
 ```{r, network.beans, cache=FALSE, fig.height=4, fig.width=5.75}
