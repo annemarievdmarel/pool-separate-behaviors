@@ -393,8 +393,15 @@ for(run in 1:replicates){
   graph.ref.crowd <- graph_from_adjacency_matrix(ref.crowd.mx, "directed", weighted=T, diag=F)
   
 #individual level
-  # strength
-  Rcrowd.strength <- strength(graph.ref.crowd, mode = c("out"), weights = E(graph.ref.crowd)$weight)
+  #out-degree
+  Rcrowd.degree <- igraph::degree(graph.ref.crowd, mode = c("out"))
+  
+   # strength
+   Rcrowd.strength <- strength(graph.ref.crowd, mode = c("out"), weights = E(graph.ref.crowd)$weight)
+  
+   # betweenness centrality
+   Rcrowd.between <- igraph::betweenness(graph.ref.crowd, directed = TRUE,
+                                    weights = E(graph.ref.crowd)$weight)
   
   # eigenvector centrality
   Rcrowd.eigen <- eigen_centrality(graph.ref.crowd, directed = TRUE, weights = E(graph.ref.crowd)$weight)
