@@ -68,7 +68,8 @@ head(dyad.list)
 
 
 #### 1. Create reference model
-To get the same sparse dataset as for crowds, we randomly select the number of displacements using 100 randomizations. We also duplicate our crowd dataframe 100 times.
+PArt A
+To get the same sparse dataset as for crowds, we randomly select the number of displacements using 100 randomizations. We also duplicate our crowd dataframe 100 times. We then re-allocate the total of the subsampled randomization runs in order to be able to compare ref model 1 with ref model 2. 
 
 
 ```{r}
@@ -104,7 +105,7 @@ for (run in 1:replicates) {
   set.seed(r.seed)
   sample.aggD <- sample_n(aggD.long, size = n.obs.crowd, replace = FALSE)
   #sample.aggD$runID <- run 
-  sample.aggD$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.aggD$actor))  #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+  sample.aggD$sampleID <- rep(paste0("sample",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.aggD$actor))  #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
   
   ref.model.sparse <- rbind.data.frame(ref.model.sparse, sample.aggD)
   
@@ -113,20 +114,20 @@ for (run in 1:replicates) {
   head(ref.model.sparse)
 
 #check that runs are different from each other
-head(subset(ref.model.sparse, runID=="run001"))
-head(subset(ref.model.sparse, runID=="run002"))
-head(subset(ref.model.sparse, runID=="run003"))
-head(subset(ref.model.sparse, runID=="run011"))
+head(subset(ref.model.sparse, sampleID=="sample001"))
+head(subset(ref.model.sparse, sampleID=="sample002"))
+head(subset(ref.model.sparse, sampleID=="sample003"))
+head(subset(ref.model.sparse, sampleID=="sample011"))
 
 #check that all runs ran as expected
-unique(ref.model.sparse$runID)
-length(unique(ref.model.sparse$runID))  
+unique(ref.model.sparse$sampleID)
+length(unique(ref.model.sparse$sampleID))  
   
   
 ### summarize displacements by dyad
 # finds n disps per actor by date for trimmed data
 sample.aggDXday <- ref.model.sparse %>% 
-  group_by(runID, actor, subject) %>% 
+  group_by(sampleID, actor, subject) %>% 
   summarise(displace=n())  %>%
  # mutate(behavior="displace") %>% 
   ungroup()
@@ -137,7 +138,7 @@ sample.aggDXday<-as.data.frame(sample.aggDXday)
 
 
 # check whether displacements add up to number of crowds per run
-check.displace<-group_by(sample.aggDXday, runID) %>%
+check.displace<-group_by(sample.aggDXday, sampleID) %>%
   summarise(n.displace=sum(displace), length(displace))
 View(check.displace)
 
@@ -157,7 +158,7 @@ for (run in 1:replicates) {
     r.seed <- run
     dat <- obs.crowd
     #dat$runID <- run  # to keep track of the iteration number (number format)
-    dat$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(obs.crowd$actor)) # #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+    dat$sampleID <- rep(paste0("sample",str_pad(r.seed, 3, side="left", pad = "0")),    length(obs.crowd$actor)) # #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
     datalist[[run]] <- dat # add it to your list
    
 }
@@ -166,33 +167,33 @@ obs.crowd.rep <- do.call(rbind, datalist)
 
 ## check wether crowds in all runs are the same by dyad
 #check that runs are the same from each other
-head(subset(obs.crowd.rep , runID=="run001"))
-head(subset(obs.crowd.rep , runID=="run002"))
-head(subset(obs.crowd.rep , runID=="run003"))
-head(subset(obs.crowd.rep , runID=="run011"))
+head(subset(obs.crowd.rep , sampleID=="sample001"))
+head(subset(obs.crowd.rep , sampleID=="sample002"))
+head(subset(obs.crowd.rep , sampleID=="sample003"))
+head(subset(obs.crowd.rep , sampleID=="sample011"))
 
 #check that all runs ran as expected
-unique(obs.crowd.rep$runID)
-length(unique(obs.crowd.rep$runID))
+unique(obs.crowd.rep$sampleID)
+length(unique(obs.crowd.rep$sampleID))
 
 # check whether crowds add up to number of crowds per run
-check.crowd<-group_by(obs.crowd.rep, runID) %>%
+check.crowd<-group_by(obs.crowd.rep, sampleID) %>%
   summarise(n.crowd=sum(crowd), length(crowd))
 View(check.crowd)
 
 
 ### combine crowds and displacements per runID
   
-sample.obs.CD<-full_join(obs.crowd.rep, sample.aggDXday, by=c("runID", "actor", "subject")) %>%
-  select(runID, everything()) %>%
+sample.obs.CD<-full_join(obs.crowd.rep, sample.aggDXday, by=c("sampleID", "actor", "subject")) %>%
+  select(sampleID, everything()) %>%
   replace_na(list(crowd = 0, displace = 0)) %>%
   mutate(total.DC=displace + crowd) %>%
-  arrange(runID)
+  arrange(sampleID)
 head(sample.obs.CD)
 str(sample.obs.CD)
 
 # check whether crowds and displacements add up to number of crowds per run
-check.sparse<-group_by(sample.obs.CD, runID) %>%
+check.sparse<-group_by(sample.obs.CD, sampleID) %>%
   summarise(n.crowds=sum(crowd,  NA, na.rm = TRUE), n.displace=sum(displace, NA, na.rm = TRUE), length(subject))
 View(check.sparse)
 
@@ -200,7 +201,7 @@ View(check.sparse)
 write.csv(sample.obs.CD, file = "ANALYZE-sparse-aggCD.csv")
 
 
-###SANJAY checking whether data matches csv file from repo
+### checking whether data matches csv file from repo
 repo.data <- read.csv("ANALYZE-sparse-aggCD.csv")
 
 #method 1
@@ -216,14 +217,136 @@ elementwise.all.equal(repo.data[,2:ncol(repo.data)], sample.obs.CD)
 
 ###
 ```
+Part B
+Now we use the same code as in reference model 1 to randomly re-allocate total  aggression (displace + crowd) back to displacements and crowds by dyad. 
+
+Preserve: Keep total events (n disp + n crowd) by dyad the same
+
+```{r}
+# Produce reference model
+head(sample.obs.CD) 
+#sample.obs.CD <- sample.obs.CD %>% rename(sampleID=runID) # sample ID = ID of subsample randomization runs
+
+run.s <- as.character(unique(sample.obs.CD$sampleID))
+replicates <- 100
+
+#make empty dataframe to write loop results into
+ref.model <- data.frame(runID=character(),  # runID = ID of the runs with 100 randomizations per sample run
+                        actor=character(),
+                       subject=character(),
+                       crowd=numeric(),
+                       displace=numeric(),
+                       totalCD=numeric(),
+                       random.crowd=numeric(),
+                       random.displace=numeric()
+                       )
+
+
+for (run in 1:replicates) {
+   run.code <- run.s[run]
+  print(run.code)
+  r.seed <- run
+  RNGkind(sample.kind="default") # code to get same random numbers across operating systems (mac vs windows)
+  set.seed(r.seed)
+  ref.data <- sample.obs.CD %>%
+                rowwise() %>%
+                dplyr::mutate(random.displace = sample(0:total.DC, 1),
+                              random.crowd = total.DC-random.displace)
+  
+  ref.data$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.obs.CD$actor)) #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+    
+  ref.data <- as.data.frame(ref.data)
+  ref.model <- rbind.data.frame(ref.model, ref.data)
+}
+
+ref.model<-select(ref.model, runID, everything())
+
+# export file
+write.csv(ref.model, file = "ANALYZE-refmodel2.csv")
+
+
+#### check ref model output ####
+
+#check that the randomized interactions vary from the observed interactions
+ref.model$random.displace == ref.model$displace
+ref.model$random.crowd == ref.model$crowd
+
+#check that runs are different from each other
+head(subset(ref.model, runID=="run001"))
+head(subset(ref.model, runID=="run002"))
+head(subset(ref.model, runID=="run003"))
+head(subset(ref.model, runID=="run011"))
+
+head(subset(ref.model, sampleID=="sample001"))
+head(subset(ref.model, sampleID=="sample002"))
+head(subset(ref.model, sampleID=="sample003"))
+head(subset(ref.model, sampleID=="sample011"))
+
+#check that all runs ran as expected
+unique(ref.model$runID)
+length(unique(ref.model$runID))
+
+unique(ref.model$sampleID)
+length(unique(ref.model$sampleID))
+
+
+check.refmodel2<- ref.model %>% group_by(runID, sampleID) %>%
+  summarize( n.crowds=sum(crowd,  NA, na.rm = TRUE),n.displace=sum(displace, NA, na.rm = TRUE), length(subject), length(actor))
+
+check.refmodel2<- ref.model %>% group_by(runID) %>%
+  summarize(n.sample=length(sampleID), n.crowds=sum(crowd,  NA, na.rm = TRUE),n.displace=sum(displace, NA, na.rm = TRUE), length(subject), length(actor))
+
+
+## loop to compare random to observed displacements for each runID
+uniqrun = unique(ref.model$runID)
+randvobs = data.frame(nmatches = numeric(), compar = character())
+nrowxrun = nrow(sample.obs.CD)
+
+for(i in uniqrun){
+        nmatches = sum(ref.model[ref.model$runID==i,]$random.displace==ref.model[ref.model$runID==i,]$displace)
+        run = i
+        df = as.data.frame(nmatches, run)
+        randvobs=rbind.data.frame(randvobs,df)
+        
+        if(sum(randvobs[,1]==nrowxrun)>0){
+                                break
+                        } #if there is at least 1 occurrence of a complete match between random.displace and observed.displace columns, then break the loop. No more comparisons will be made. Look at end of randvobs to see which runs had a complete match
+}
+
+#check
+randvobs
+
+# sampleID
+uniqrun = unique(ref.model$sampleID)
+randvobs = data.frame(nmatches = numeric(), compar = character())
+nrowxrun = nrow(sample.obs.CD)
+
+for(i in uniqrun){
+        nmatches = sum(ref.model[ref.model$sampleID==i,]$random.displace==ref.model[ref.model$sampleID==i,]$displace)
+        run = i
+        df = as.data.frame(nmatches, run)
+        randvobs=rbind.data.frame(randvobs,df)
+        
+        if(sum(randvobs[,1]==nrowxrun)>0){
+                                break
+                        } #if there is at least 1 occurrence of a complete match between random.displace and observed.displace columns, then break the loop. No more comparisons will be made. Look at end of randvobs to see which runs had a complete match
+}
+
+#check
+randvobs
+
+
+```
+
+
 
 Now, we can summarize our results using this reference model.
 
 ```{r}
 # load the reference model data for the sampled dataset
-ANALYZE_sparse_aggCD <- read.csv(file="ANALYZE-sparse-aggCD.csv") 
-ref.model <- ANALYZE_sparse_aggCD %>%
-  dplyr::rename(rowID=X)
+refmodel2 <- read.csv( file = "ANALYZE-refmodel2.csv")
+ref.model <- refmodel2 %>%
+  dplyr::select(-X)
 
 ```
 
