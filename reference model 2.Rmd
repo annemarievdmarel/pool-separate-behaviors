@@ -340,34 +340,28 @@ randvobs
 
 
 
-Now, we can summarize our results using this reference model.
-
-```{r}
-# load the reference model data for the sampled dataset
-refmodel2 <- read.csv( file = "ANALYZE-refmodel2.csv")
-ref.model <- refmodel2 %>%
-  dplyr::select(-X) %>% 
-  rename(observed.crowd=crowd, sample.displace=displace)
-
-```
-
-
 #### 2. summarize ref model
 The summary results of the observed data are calculated in the 'observed data.rmd' file and saved in "ANALYZE-SUMM.observed.csv"
 
-# Loop to produce all reference model summaries (except strategies)
+
+Now, we can summarize our results using reference model 2.
 
 ```{r}
+# load the reference model data
+refmodel2 <- read.csv( file = "ANALYZE-refmodel2.csv")
+
 ref.model <- refmodel2 %>%
   dplyr::select(-X) %>% 
   rename(observed.crowd=crowd, sample.displace=displace)
 
-# randomly choose subsample of runIDs 
+# randomly choose subsample of runIDs --> all would take too long
+# chose 50 for summary metrics except strategies which ran for 3 hours, r crashed for strategies
+# chose 10 for strategies
 set.seed(42)
 subset.refmodel <- ref.model %>% 
   select(runID) %>% 
   distinct %>% 
-  sample_n(50)     # change number as random subsample of runIDs 
+  sample_n(10)     # change number as random subsample of runIDs 
 subset.refmodel <- left_join(subset.refmodel, ref.model)
 
 ref.model<-subset.refmodel # rename subset.refmodel
@@ -375,6 +369,12 @@ ref.model<-subset.refmodel # rename subset.refmodel
 # 1 column : runID-sampleID 
 ref.model <- unite(ref.model, runID, c("runID", "sampleID"))
 
+```
+
+
+# Loop to produce all reference model summaries (except strategies)
+
+```{r}
 
 #make empty dataframe to fill
 ref.model.summaries <- data.frame(run.code=character(), 
@@ -634,53 +634,8 @@ head(ref.model.summaries)
 write.csv(ref.model.summaries, "ANALYZE-SUMM.refmodel2.csv")
 ```
 
-## Correlation between crowds and displacements
 
-How are displacements and crowds correlated in the random runs?
-NOTE: the package plyr conflicts with the package dplyr causing some weird behavior. Be VERY CAREFUL if you are using both! You can use detach(package:plyr) to de-activate plyr later in a script
-
-NOTE: we perform a correlation matrix when we summarize our reference model and in our paper
-
-```{r}
-head(ref.model)
-
-require(plyr)
-func <- function(ref.model)
-{
-return(data.frame(COR = cor(ref.model$displace, ref.model$crowd, method = "spearman")))
-}
-
-COR.refmodel <- ddply(ref.model, .(runID), func)
-
-#find mean of reference model correlations
-COR.refmodel.mean <- mean(COR.refmodel$COR)
-
-
-#PLOT
-par(mfrow=c(1,1))
-
-run.s <- unique(ref.model$runID)
-
-replicates <- 100
-
-for(run in 1:replicates){
-  run.code <- run.s[run]
-  run.data <- subset(ref.model, runID==run.code)
-  run.corr <- subset(COR.refmodel, runID==run.code)
-  with (run.data, plot (displace, crowd, main=paste0(run.code, " Correlation=", round(run.corr$COR, 2))))
-  with (run.data, abline(lm(crowd~displace), col="grey")) # regression line (y~x)
-}
-
-detach(package:plyr)
-
-# WRITE DATA  for SAMPLED data
-head(COR.refmodel)
-write.csv(COR.refmodel, file = "ANALYZE_sparse_refmodelCOR.csv")	
-```
-
-
-
-#### 3. summarize strategies
+#### Loop to produce aggression strategies
 
 Finding the strategies for displacements (takes awhile!). 
 ```{r}
@@ -691,10 +646,6 @@ head(ref.model)
 
 run.s <- as.character(unique(ref.model$runID))
 n.total.dyads <- length(dyad.list$dyadID) #total number of dyads 
-
-start.time <- Sys.time()
-
-
 
 #make empty dataframe to fill
 ref.model.strategies <- data.frame(run.code=character(), 
@@ -739,11 +690,10 @@ for(run in seq_along(unique(ref.model$runID))){
 
   ### DISPLACEMENT
   
-  ref.disp.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="displace") #head(ref.disp.mx)
+  ref.disp.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="random.displace") #head(ref.disp.mx)
   ref.disp.mx[is.na(ref.disp.mx)] <- 0
   ref.disp.mx <- matrix.please(ref.disp.mx)
   
-  # DISPLACEMENTS
   # Compute focus & position
   focus.Rdisp <- dom_focus(ref.disp.mx)
   position.Rdisp <- dom_position(ref.disp.mx)
@@ -791,7 +741,52 @@ sum(ref.model$crowd[ref.model$runID=="run003"])
 sum(ref.model$displace[ref.model$runID=="run050"])
 
 # export data
-write.csv(ref.model.strategies, file = "ANALYZE_SUMM.sparse.refmodel.strategies.csv")	
-write.csv(refmodel.blurdata, file = "ANALYZE_SUMM.sparse.refmodel.blurs.csv")
+write.csv(ref.model.strategies, file = "ANALYZE_SUMM.refmodel2.strategies.csv")	
+write.csv(refmodel.blurdata, file = "ANALYZE_SUMM.refmodel2.blurs.csv")
 ```
+
+## Correlation between crowds and displacements
+
+How are displacements and crowds correlated in the random runs?
+NOTE: the package plyr conflicts with the package dplyr causing some weird behavior. Be VERY CAREFUL if you are using both! You can use detach(package:plyr) to de-activate plyr later in a script
+
+NOTE: we perform a correlation matrix when we summarize our reference model and in our paper
+
+```{r}
+head(ref.model)
+
+require(plyr)
+func <- function(ref.model)
+{
+return(data.frame(COR = cor(ref.model$displace, ref.model$crowd, method = "spearman")))
+}
+
+COR.refmodel <- ddply(ref.model, .(runID), func)
+
+#find mean of reference model correlations
+COR.refmodel.mean <- mean(COR.refmodel$COR)
+
+
+#PLOT
+par(mfrow=c(1,1))
+
+run.s <- unique(ref.model$runID)
+
+replicates <- 100
+
+for(run in 1:replicates){
+  run.code <- run.s[run]
+  run.data <- subset(ref.model, runID==run.code)
+  run.corr <- subset(COR.refmodel, runID==run.code)
+  with (run.data, plot (displace, crowd, main=paste0(run.code, " Correlation=", round(run.corr$COR, 2))))
+  with (run.data, abline(lm(crowd~displace), col="grey")) # regression line (y~x)
+}
+
+detach(package:plyr)
+
+# WRITE DATA  for SAMPLED data
+head(COR.refmodel)
+write.csv(COR.refmodel, file = "ANALYZE_sparse_refmodelCOR.csv")	
+```
+
 
