@@ -367,9 +367,10 @@ set.seed(42)
 subset.refmodel <- ref.model %>% 
   select(runID) %>% 
   distinct %>% 
-  sample_n(1)     # change number as random subsample of runIDs 
+  sample_n(50)     # change number as random subsample of runIDs 
 subset.refmodel <- left_join(subset.refmodel, ref.model)
-ref.model<-subset.refmodel
+
+ref.model<-subset.refmodel # rename subset.refmodel
 
 # 1 column : runID-sampleID 
 ref.model <- unite(ref.model, runID, c("runID", "sampleID"))
@@ -689,8 +690,11 @@ head(ref.model)
 #head(ANALYZE_refmodelCOR_CxD)
 
 run.s <- as.character(unique(ref.model$runID))
-n.total.dyads <- 420 #change this if the total number of dyads changes (group size !=21)
-replicates <- 100 #how many runs of the reference model were done
+n.total.dyads <- length(dyad.list$dyadID) #total number of dyads 
+
+start.time <- Sys.time()
+
+
 
 #make empty dataframe to fill
 ref.model.strategies <- data.frame(run.code=character(), 
@@ -714,7 +718,7 @@ refmodel.blurdata <- data.frame(runID=character(),
 #n.Odisplace <- sum(run.data$observed.displace)
 start.time <- Sys.time()
 
-for(run in 1:replicates){
+for(run in seq_along(unique(ref.model$runID))){
   run.code <- run.s[run]
   print(run.code)
   run.data <- subset(ref.model, runID==run.code)
