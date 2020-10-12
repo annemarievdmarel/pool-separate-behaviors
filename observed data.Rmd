@@ -492,47 +492,48 @@ cor.test(observedXdyad$observed.crowd,
                                   ObtotalCD.focus, ObtotalCD.position,
                                   Obstrategy.totalCD
                                   )
-
   
-## observed correlation out-strength
-hist(observed.ID$Obcrowd.strength) # normal distribution?
-hist(observed.ID$Obdisp.strength)
-plot(observed.ID$Obcrowd.strength,observed.ID$Obdisp.strength)  # linear relationship?
-
-obs.cor.strength <- cor(observed.ID$Obcrowd.strength, observed.ID$Obdisp.strength, 
-               method = "spearman")
+  
+  ## correlation individual-based metric
+  
+  # observed correlation out-strength
+#hist(Obcrowd.strength) # normal distribution?
+#hist(observed$Obdisp.strength)
+plot(Obcrowd.strength,Obdisp.strength)  # linear relationship?
 
 cor.test(observed.ID$Obcrowd.strength, 
          observed.ID$Obdisp.strength, 
          method = "spearman",
          exact = FALSE)
-
-## observed correlation betweenness
-hist(observed.ID$Obcrowd.between) # normal distribution?
-hist(observed.ID$Obdisp.between)
-plot(observed.ID$Obcrowd.between,observed.ID$Obdisp.between)  # linear relationship?
-
-obs.cor.between <- cor(observed.ID$Obcrowd.between, observed.ID$Obdisp.between, 
+  obs.cor.strength <- cor(Obcrowd.strength, Obdisp.strength,  
                method = "spearman")
+  
+  ## observed correlation betweenness
+#hist(observed$Obcrowd.between) # normal distribution?
+#hist(observed$Obdisp.between)
+plot(Obcrowd.between,Obdisp.between)  # linear relationship?
 
 cor.test(observed.ID$Obcrowd.between, 
          observed.ID$Obdisp.between, 
          method = "spearman",
          exact = FALSE)
 
-## observed correlation eigenvector
-hist(observed.ID$Obcrowd.ec) # normal distribution?
-hist(observed.ID$Obdisp.ec) # linear relationship?
-plot(observed.ID$Obcrowd.ec,observed.ID$Obdisp.ec) 
-
-obs.cor.eigen <- cor(observed.ID$Obcrowd.ec, observed.ID$Obdisp.ec, 
+  obs.cor.between <- cor(Obcrowd.between, Obdisp.between,  
                method = "spearman")
+  
+  # observed correlation eigenvector
+#hist(observed$Obcrowd.ec) # normal distribution?
+#hist(observed$Obdisp.ec) # linear relationship?
+plot(Obcrowd.ec,Obdisp.ec) 
 
 cor.test(observed.ID$Obdisp.ec, 
          observed.ID$Obcrowd.ec, 
          method = "spearman",
          exact = FALSE)  
-      
+
+obs.cor.eigen <- cor(Obcrowd.ec, Obdisp.ec,  
+               method = "spearman")
+  
 # POOL ALL DATA
 observed.summary <- cbind.data.frame(Obcd.basic, Obcrowd.hier, Obdisp.hier, ObtotalCD.hier,obs.cor.strength, obs.cor.between, obs.cor.eigen)
 
