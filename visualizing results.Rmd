@@ -591,9 +591,6 @@ p.ref2.trans
 ```
   
 
-
-
-
 ## Aggression strategies
 summary of number of runs per strategy and plot those with observed strategie in caption
 
@@ -645,61 +642,6 @@ dev.print(pdf, file="plot.strategies.pdf")
 
 ```
 
-
-```{r, network.beans, cache=FALSE, fig.height=4, fig.width=5.75}
-# observed strategies
-observed.summary$strategy.Obcrowd # "pure bully"
-observed.summary$strategy.Obdisp  # "pure bully"
-observed.summary$Obstrategy.totalCD # "pure bully"
-
-
-# combine both dataframes
-refmodel2.strategies<- refmodel2.strategies %>% rename(focus.sparse = focus.Rdisp, 
-         position.sparse = position.Rdisp, 
-         strategy.sparse = strategy.Rdisp) %>% 
-  select(-X)
-str(refmodel2.strategies)
-
-ref.model.strategies<-left_join(refmodel1.strategies, refmodel2.strategies, by="run.code")
-head(ref.model.strategies)
-
-# strategies per random run
-strategies.Rcrowd<-group_by(ref.model.strategies, strategy.Rcrowd) %>%
-  tally() %>% 
-  mutate(behavior="crowd") %>%
-  rename(strategy=strategy.Rcrowd) %>%
-  add_row(strategy="close.competitor",n= 0, behavior="crowd")
-strategies.Rdisp<-group_by(ref.model.strategies, strategy.Rdisp) %>%
-  summarise(n=n()) %>% 
-  mutate(behavior="displace") %>%
-  rename(strategy=strategy.Rdisp) %>%
-  add_row(strategy="close.competitor",n= 0, behavior="displace")
-strategies.sparse<-group_by(ref.model.strategies, strategy.sparse) %>%
-  summarise(n=n()) %>% 
-  mutate(behavior="sparse displace") %>%
-  rename(strategy=strategy.sparse) %>%
-  add_row(strategy="close.competitor",n= 0, behavior="sparse displace")
-strategies<-rbind(strategies.Rcrowd, strategies.Rdisp, strategies.sparse)
-
-strategies$strategy<-factor(strategies$strategy, 
-                            levels =c("downward.heuristic","close.competitor","pure.bully", "pure.undefined") , 
-                            labels = c("Downward heuristic", "Close competitors", "Bullying", "Undefined") )
-
-strategies$behavior<-factor(strategies$behavior, 
-                            levels = c("crowd", "displace", "sparse displace"),
-                            labels = c("ref1 crowds", "ref1 displace", "ref2 displace"))
-
-ggplot(strategies, aes(x=behavior, y=n, fill=strategy)) +
-  geom_col(aes(group= strategy), colour= beanborder) +
-  theme_classic() +
-  labs(y="percentage", x="", caption = "observed crowd = bullying \nobserved displace = bullying \nobserved pooled = bullying") +
-  theme(plot.caption=element_text(hjust = 0) ) +
-  scale_fill_manual(values=c(alpha("lightgrey", 0.4),alpha("red", 0.4), alpha("blue", 0.4), alpha("black", 0.6)))  
-
-
-# save plot
-dev.print(pdf, file="plot.strategies.pdf")
-```
 
 ## supplemental info
 ```{r, network.beans, cache=FALSE, fig.height=4, fig.width=5.75}
