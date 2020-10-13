@@ -191,7 +191,13 @@ for (run in 1:replicates) { #run=2
 
 
 ```
-## 
+## this code runs (no clue why above code doesn't....): 
+The goal of this reference model is to assess how sparser displacement data may affect our summary statistics. To do this we subsampled our displacement event data so that the number of displacements was reduced to equal the number of crowds (which were the rarer behavior type in our observations).
+
+There are 2 parts to this model:
+Part A: subsample displacements to equal the rare interaction type and add observed crowds to this dataframe
+
+Part B: randomly re-allocate the total observed crowds and subsample displacements back to the 2 interaction types. 
 ```{r}
 ## get data ready
 
