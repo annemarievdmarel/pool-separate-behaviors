@@ -675,6 +675,9 @@ beanplot(refmodel1.summary.group$Rcrowd.density, refmodel1.summary.group$Rdispla
   
   abline(h=observed.summary$ObtotalCD.density, col=alpha(obs.vals, pooled.alpha), lwd = linewidth) # add line estimate of totalDC 
 
+  text(1, 0.9, "*")
+  text(2, 0.9, "*")
+  text(3, 0.9, "NS")
   
 # sparseness
 beanplot(refmodel1.summary.group$Rcrowd.prunk.pu, refmodel1.summary.group$Rdisp.prunk.pu,refmodel2.summary.group$Rdisp.prunk.pu,
@@ -703,6 +706,9 @@ beanplot(refmodel1.summary.group$Rcrowd.prunk.pu, refmodel1.summary.group$Rdisp.
   
   abline(h=observed.summary$ObtotalCD.prunk.pu, col=alpha(obs.vals, pooled.alpha), lwd = linewidth) # add line estimate of totalDC 
   
+   text(1, 0.9, "*")
+  text(2, 0.9, "*")
+  text(3, 0.9, "NS")
 
 # save plot
 dev.print(pdf, file="plot.network.SM.pdf")
