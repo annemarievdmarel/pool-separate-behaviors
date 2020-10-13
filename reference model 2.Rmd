@@ -68,48 +68,107 @@ head(dyad.list)
 
 
 #### 1. Create reference model
-PArt A
-To get the same sparse dataset as for crowds, we randomly select the number of displacements using 100 randomizations. We also duplicate our crowd dataframe 100 times. We then re-allocate the total of the subsampled randomization runs in order to be able to compare ref model 1 with ref model 2. 
+The goal of this reference model is to assess how sparser displacement data may affect our summary statistics. To do this we subsampled our displacement event data so that the number of displacements was reduced to equal the number of crowds (which were the rarer behavior type in our observations)
 
+There are three steps:
+1. Subsample displacements: using raw data of behavioral events (date/time, actor, subject, behavior type), randomly subsample to return the same number of displacements total as we had for total crowd events
+
+2. Summarize displacements: with the subsampled data, find the total number of displacements per dyad
+
+3. Bind: bind the observed crowd data (summarized at the dyad level) with the summarized displacement data
+
+4. Reallocate: randomly re-allocate the total number of aggressive events for each dyad (the number of subsampled displacements and the number of observed crowds)
+
+Result:
+100 runs, where each are subsampled and re-allocated
+
+https://stackoverflow.com/questions/38208529/de-aggregate-reverse-summarise-expand-a-dataset-in-r
 
 ```{r}
-### displacements in long format
-aggD.long<-select(observed, -crowd, -total.DC) %>%
-  slice(rep(seq_len(n()), displace)) %>% 
+#keep only displacements from raw data
+obs.disp <- select(observed, actor, subject, displace)  #head(observed,20)
+total.disp <- sum(obs.disp$displace)
+
+#subset displacements to retain on dyads with more than 0 displacements
+obs.disp.non0 <- subset(obs.disp, displace>0) # check unique(obs.disp.non0$displace)
+
+
+obs.disp.non0.events <- obs.disp.non0 %>% as_tibble() %>%
+  mutate(disp.event = map(displace, ~rep_len(1, .x))) %>%
+  unnest() %>%
   select(-displace)
 
-### sample displacements 100x
-# check # observations correct
-length(aggD.long$rowID)
-sum(observed$displace)
+str(obs.disp.non0.events)
+nrow(obs.disp.non0.events)
+sum(obs.disp.non0.events$disp.event)
 
-# check how many crowds we have
-n.obs.crowd<-sum(observed$crowd)
+#keep only crowds from raw data
+obs.crowd <- select(observed, actor, subject, crowd) 
+OBSdyad.sum.crowd <- obs.crowd %>% group_by(actor, subject) %>% summarize(OBSdyad.crowd = sum(crowd))
 
-head(aggD.long)
+# find total number of crowd events
+total.obs.crowd<-sum(dyad.sum.crowd$OBSdyad.crowd)
 
 replicates <- 100
-
-run=2
 
 # make empty dataframe to write loop results into
 ref.model.sparse <- data.frame(actor=character(),
                        subject=character(),
-                       date=character(),
-                       period=character())
+                       runID=character(),
+                       obs.crowd=numeric(),
+                       subsamp_realloc_disp=numeric()
+                       )
 
- # loop
-for (run in 1:replicates) {
+
+# loop
+for (run in 1:replicates) { #run=2
   r.seed <- run
   RNGkind(sample.kind="default") 
   set.seed(r.seed)
-  sample.aggD <- sample_n(aggD.long, size = n.obs.crowd, replace = FALSE)
-  #sample.aggD$runID <- run 
-  sample.aggD$sampleID <- rep(paste0("sample",str_pad(r.seed, 3, side="left", pad = "0")),    length(sample.aggD$actor))  #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
   
-  ref.model.sparse <- rbind.data.frame(ref.model.sparse, sample.aggD)
+  ### Step 1: subsample displacement events (1 row per event) to have same number as total crowd events
+  disp.events.subsampled <- sample_n(obs.disp.non0.events, size = total.obs.crowd, replace = FALSE)
   
+  ### STEP 2: summarize subsampled displacement events by dyad
+  REF2A.dyad.sum.subsampled_disp <- disp.events.subsampled %>% 
+                                      group_by(actor, subject) %>% 
+                                      summarize(disp.events.subsampled = sum(disp.event))
+  
+    # check, should sum to number of crowds: sum(REF2A.dyad.sum.subsampled_disp$disp.events.subsampled)
+  names(REF2A.dyad.sum.subsampled_disp)
+  names(run.data)
+  
+  ### STEP 3: make runID and merge runID and dyad.sum.subsampled_disp with observed crowd dyad summary
+  
+  # make runID: generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+  runID <- rep(paste0("run",str_pad(run, 3, side="left", pad = "0")), nrow(OBSdyad.sum.crowd))  
+  
+  # bind runID with observed crowd dyad summaries, then merge the subsampled displacement data to that
+  run.data <- cbind.data.frame(runID, OBSdyad.sum.crowd)
+  run.data <- merge(run.data, REF2A.dyad.sum.subsampled_disp, by=c("actor", "subject"), all.x=TRUE)
+  run.data$disp.events.subsampled[is.na(run.data$disp.events.subsampled)] <- 0 #convert any NAs to 0
+
+  ### STEP 4: reallocate the observed crowd data and the subsampled displacement data (use same set seed)
+  
+  #add total aggression
+  run.data$total.agg.REF2 <- run.data$OBSdyad.crowd + run.data$disp.events.subsampled
+  
+  #re-set sampling conditions (use same seed as above, using loop to set r.seed)
+  RNGkind(sample.kind="default") 
+  set.seed(r.seed)
+  
+  #TO DO: add ref model 1 here, but only reallocate aggression ONCE
+  
+  #TO DO: save output (actor, subject, runID, REF2.crowd, REF2.disp) where REF2.disp is both subsampled then re-allocated
+  
+
 }
+
+```
+
+#Old code, partially used above
+
+```{r}
   
   head(ref.model.sparse)
 
