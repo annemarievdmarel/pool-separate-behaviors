@@ -65,12 +65,12 @@ col.ltgn <- "#b2df8a" #use for sparse displace
 col.dkgn <- "#33a02c" #use for regular displace
 col.lttl <- "#a6cee3"
 col.dkrd <- "#ca0020"
-
+col.prpl <- "#7b3294"
 
 #set color by behavior
 crowds <- col.teal
 displace <- col.dkgn
-obs.vals <- col.dkrd
+obs.vals <- col.prpl
 
 #set plot color by plot element
 bean.alpha <- 0.4
@@ -81,7 +81,7 @@ beanoutlines<- alpha("black", 0.2)
 beanavgines <- "purple"
 beanborder <- alpha("black", 0.6)
 
-pooled.alpha <- 0.7
+pooled.alpha <- 0.9
 linewidth <- 1
 xlabels <- c("ref1 crowds", "ref1 displace", "ref2 displace")
 obsval.pch <- 5
@@ -249,7 +249,7 @@ abline(h=observed.summary$obs.cor.eigen, col=alpha(obs.vals, pooled.alpha), lwd 
 
 
 # save plot
-#dev.print(pdf, file="plot.indvidual.pdf")
+dev.print(pdf, file="plot.indvidual.pdf")
 ```
 
 
@@ -389,7 +389,7 @@ beanplot(refmodel1.summary.group$Rcrowd.eff, refmodel1.summary.group$Rdisp.eff,r
   abline(h=observed.summary$ObtotalCD.eff, col=alpha(obs.vals, pooled.alpha), lwd = linewidth) # add line estimate of totalDC 
   
 # save plot
-#dev.print(pdf, file="plot.network.beans.pdf")  
+dev.print(pdf, file="plot.network.beans.pdf")  
 ```
 Are observed values significantly different from random values in reference models?
 
