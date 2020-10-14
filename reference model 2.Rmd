@@ -256,7 +256,7 @@ for (run in 1:replicates) {
   
  
   ### COMBINE observed crowds and subsampled displacements per runID
-   runID <- rep(paste0("run",str_pad(run, 3, side="left", pad = "0")), nrow(obs.dyad.sum.crowd)) 
+   runID <- rep(paste0("run",str_pad(run, 3, side="left", pad = "0")), nrow(obs.crowd)) 
   
   run.data<-cbind.data.frame(runID, obs.crowd)
    
@@ -286,45 +286,19 @@ for (run in 1:replicates) {
 ```
 check whether everything ran properly
 ```{r}
-#check that runs are different from each other
-head(subset(ref.model.sparse, runID=="run001"))
-head(subset(ref.model.sparse, runID=="run002"))
-head(subset(ref.model.sparse, runID=="run003"))
-head(subset(ref.model.sparse, runID=="run011"))
-#check that all runs ran as expected
-unique(ref.model.sparse$runID)
-length(unique(ref.model.sparse$runID))  
-  
-  
-## check wether crowds in all runs are the same by dyad
-#check that runs are the same from each other
-head(subset(obs.crowd.rep , runID=="run001"))
-head(subset(obs.crowd.rep , runID=="run002"))
-head(subset(obs.crowd.rep , runID=="run003"))
-head(subset(obs.crowd.rep , runID=="run011"))
-#check that all runs ran as expected
-unique(obs.crowd.rep$runID)
-length(unique(obs.crowd.rep$runID))
-# check whether crowds add up to number of crowds per run
-check.crowd<-group_by(obs.crowd.rep, runID) %>%
-  summarise(n.crowd=sum(crowd), length(crowd))
-head(check.crowd)
-# check whether crowds and displacements add up to number of crowds per run
-check.sparse<-group_by(sample.obs.CD, runID) %>%
-  summarise(n.crowds=sum(crowd,  NA, na.rm = TRUE), n.displace=sum(displace, NA, na.rm = TRUE), length(subject))
-head(check.sparse)
 ## check ref model output
+
 #check that the randomized interactions vary from the observed interactions
 ref.model$random.displace == ref.model$displace
 ref.model$random.crowd == ref.model$crowd
 #check that runs are different from each other
-head(subset(ref.model, sampleID=="run001"))
-head(subset(ref.model, sampleID=="run002"))
-head(subset(ref.model, sampleID=="run003"))
-head(subset(ref.model, sampleID=="run011"))
+head(subset(ref.model, runID=="run001"))
+head(subset(ref.model, runID=="run002"))
+head(subset(ref.model, runID=="run003"))
+head(subset(ref.model, runID=="run011"))
 #check that all runs ran as expected
-unique(ref.model$sampleID)
-length(unique(ref.model$sampleID))
+unique(ref.model$runID)
+length(unique(ref.model$runID))
 
 
 ```
