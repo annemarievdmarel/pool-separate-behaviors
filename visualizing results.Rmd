@@ -66,11 +66,22 @@ col.dkgn <- "#33a02c" #use for regular displace
 col.lttl <- "#a6cee3"
 col.dkrd <- "#ca0020"
 col.prpl <- "#7b3294"
+col.dkbl <- "#0571b0"
+col.ltbl <- "#92c5de"  
+col.red  <- "#ca0020"
+col.yllw <- "#ffffbf"
 
 #set color by behavior
-crowds <- col.teal
+crowds <- col.teal  
 displace <- col.dkgn
-obs.vals <- col.prpl
+obs.vals <- col.red
+
+ref1.crowds <- col.yllw
+ref1.displace <- col.dkbl
+
+# set color by ref model
+ref1 <- col.dkbl
+ref2 <- col.ltbl
 
 #set plot color by plot element
 bean.alpha <- 0.4
@@ -81,7 +92,7 @@ beanoutlines<- alpha("black", 0.2)
 beanavgines <- "purple"
 beanborder <- alpha("black", 0.6)
 
-pooled.alpha <- 0.9
+pooled.alpha <- 0.7
 linewidth <- 1
 xlabels <- c("ref1 crowds", "ref1 displace", "ref2 displace")
 obsval.pch <- 5
@@ -108,8 +119,8 @@ beanplot(refmodel1.summary.group$ref1.cor.matrix, refmodel2.summary.group$ref2.c
          #            c(alpha(beaninlines, 0.5), alpha(beaninlines, 0.5)) #bean colors
          #            ),
          
-         col = list(c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 2
+         col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 2
                     ),
          
          border=crowds
@@ -157,38 +168,38 @@ par(mfrow=c(3,3))
 # out-strength
 plot(bg_refmodel1$Rdisp.strength, bg_refmodel1$Rcrowd.strength, 
      xlab ="displace", ylab = "crowd", main = "out strength", 
-     col = alpha(col.dkgn, bean.alpha), pch = 19)
+     col = alpha(ref1, bean.alpha), pch = 19)
 points(observed.summary.individual$Obdisp.strength,observed.summary.individual$Obcrowd.strength, col=alpha(obs.vals, pooled.alpha), pch = 19)
 
 # betweenness
 plot(bg_refmodel1$Rdisp.between, bg_refmodel1$Rcrowd.between, 
      xlab ="displace", ylab = "crowd", main = "betweenness", 
-     col = alpha(col.dkgn, bean.alpha), pch = 19)
+     col = alpha(ref1, bean.alpha), pch = 19)
 points(observed.summary.individual$Obdisp.between,observed.summary.individual$Obcrowd.between, col=alpha(obs.vals, pooled.alpha), pch = 19)
 
 # eigenvector 
 plot(bg_refmodel1$Rdisp.ec, bg_refmodel1$Rcrowd.ec, 
      xlab ="displace", ylab = "crowd", main = "eigenvector", 
-     col = alpha(col.dkgn, bean.alpha), pch = 19)
+     col = alpha(ref1, bean.alpha), pch = 19)
 points(observed.summary.individual$Obdisp.ec,observed.summary.individual$Obcrowd.ec, col=alpha(obs.vals, pooled.alpha), pch = 19)
 
 ## ref model 2
 # out strength
 plot(bg_refmodel2$Rdisp.strength, bg_refmodel2$Rcrowd.strength, 
      xlab ="displace", ylab = "crowd", main = "", 
-     col = alpha(col.ltgn, bean.alpha), pch = 19)
+     col = alpha(ref2, bean.alpha), pch = 19)
 points(observed.summary.individual$Obdisp.strength,observed.summary.individual$Obcrowd.strength, col=alpha(obs.vals, pooled.alpha), pch = 19)
 
 # betweenness
 plot(bg_refmodel2$Rdisp.between, bg_refmodel2$Rcrowd.between, 
      xlab ="displace", ylab = "crowd", main = "", 
-     col = alpha(col.ltgn, bean.alpha), pch = 19)
+     col = alpha(ref2, bean.alpha), pch = 19)
 points(observed.summary.individual$Obdisp.between,observed.summary.individual$Obcrowd.between, col=alpha(obs.vals, pooled.alpha), pch = 19)
 
 # eigenvector 
 plot(bg_refmodel2$Rdisp.ec, bg_refmodel2$Rcrowd.ec, 
      xlab ="displace", ylab = "crowd", main = "", 
-     col = alpha(col.ltgn, bean.alpha), pch = 19)
+     col = alpha(ref2, bean.alpha), pch = 19)
 points(observed.summary.individual$Obdisp.ec,observed.summary.individual$Obcrowd.ec, col=alpha(obs.vals, pooled.alpha), pch = 19)
 
 ## Distribution plots of correlation strength ref model 1 and ref model 2 + observed value
@@ -199,8 +210,8 @@ beanplot(refmodel1.summary$R.cor.strength, refmodel2.summary$R.cor.strength,
          ylab="Spearman's rho", log = "",
          xlab = "",  ylim=c(-0.2, 1.0),
          #add custom bean colorscrowds
-           col = list(c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 2
+           col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 2
                     ),
         
          border = beanborder, 
@@ -217,8 +228,8 @@ beanplot(refmodel1.summary$R.cor.between, refmodel2.summary$R.cor.between,
          ylab="Spearman's rho", log = "",
          xlab = "",  ylim=c(-0.2, 1.0),
          #add custom bean colorscrowds
-           col = list(c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 2
+           col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 2
                     ),
         
          border = beanborder, 
@@ -236,8 +247,8 @@ beanplot(refmodel1.summary$R.cor.eigen, refmodel2.summary$R.cor.eigen,
          ylab="Spearman's rho", log = "",
          xlab = "",  ylim=c(-0.2, 1.0),
          #add custom bean colorscrowds
-           col = list(c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 2
+           col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 2
                     )  
          ,
          border = beanborder,  las=1, 
@@ -329,9 +340,9 @@ beanplot(refmodel1.summary.group$Rcrowd.apl, refmodel1.summary.group$Rdisp.apl, 
          xlab = "", names = xlabels, 
          
          #add custom bean colorscrowds
-         col = list(c(alpha(crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+         col = list(c(alpha(ref1.crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
                     ),          
 
          border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
@@ -364,9 +375,9 @@ beanplot(refmodel1.summary.group$Rcrowd.eff, refmodel1.summary.group$Rdisp.eff,r
         xlab = "", names = xlabels, 
         
          #add custom bean colorscrowds
-         col = list(c(alpha(crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+         col = list(c(alpha(ref1.crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
                     ),         
          border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
         maxstripline = 0.1, # maximum length of a beanline
@@ -443,9 +454,9 @@ beanplot(refmodel1.summary.group$Rcrowd.linearity, refmodel1.summary.group$Rdisp
          xlab = "", names = xlabels, 
          
          #add custom bean colorscrowds
-         col = list(c(alpha(crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+         col = list(c(alpha(ref1.crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
                     ), 
         
          border = beanborder,  las=1, 
@@ -477,9 +488,9 @@ beanplot(refmodel1.summary.group$Rcrowd.steepness, refmodel1.summary.group$Rdisp
          xlab = "", names = xlabels, 
         
          #add custom bean colorscrowds
-         col = list(c(alpha(crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+         col = list(c(alpha(ref1.crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
                     ),         
          
          border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
@@ -512,9 +523,9 @@ beanplot(refmodel1.summary.group$Rcrowd.transi.ttri, refmodel1.summary.group$Rdi
          xlab = "", names = xlabels, 
          
          #add custom bean colorscrowds
-         col = list(c(alpha(crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+         col = list(c(alpha(ref1.crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
                     ), 
          
          border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
