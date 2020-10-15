@@ -626,9 +626,10 @@ strategies.Rdisp<-group_by(refmodel1.strategies, strategy.Rdisp) %>%
    add_row(strategy="pure.undefined",n= 0,prop=0,  behavior="displace")
 strategies.refmodel2<-group_by(refmodel2.strategies, strategy.Rdisp) %>%
   summarise(n=n()) %>% 
-  mutate(prop=n/1000, behavior="sparse displace") %>%
+  mutate(prop=n/100, behavior="sparse displace") %>%
   rename(strategy=strategy.Rdisp) %>%
   add_row(strategy="close.competitor",n= 0,prop=0,  behavior="sparse displace")
+# 51 % pure bully, 47% downward heuristic, and 2% undefined
 strategies<-rbind(strategies.Rcrowd, strategies.Rdisp, strategies.refmodel2)
 
 strategies$strategy<-factor(strategies$strategy, 
