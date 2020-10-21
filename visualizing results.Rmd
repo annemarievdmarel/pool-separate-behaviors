@@ -69,15 +69,14 @@ col.prpl <- "#7b3294"
 col.dkbl <- "#0571b0"
 col.ltbl <- "#92c5de"  
 col.red  <- "#ca0020"
-col.yllw <- "#ffffbf"
-col.orng <- "#fc8d59"
+col.orng <- "#fdae61"
 
 #set color by behavior
 crowds <- col.orng  # was col.teal 
 displace <- col.dkbl  # was  col.dkgn
 
 obs.vals <- col.red
-ref1.crowds <- col.yllw
+ref1.crowds <- col.orng
 ref1.displace <- col.dkbl
 
 # set color by ref model
@@ -95,7 +94,7 @@ beanborder <- alpha("black", 0.6)
 
 pooled.alpha <- 0.7
 linewidth <- 1
-xlabels <- c("ref1 crowds", "ref1 displace", "ref2 displace")
+xlabels <- c("Crowd \nRef. model 1", "Displace \nRef. model 1", "Displace \nRef. model 2")
 obsval.pch <- 5
 obsval.size <- 2.5
 obsval.hlt.pch <- 8  # asterisk  --> significant result
@@ -108,10 +107,39 @@ ylim<-c(0,1)
 
 
 ## correlation
+```{r, corr.hist, cache=FALSE, fig.height=5, fig.width=4.5}
+par(mfrow=c(2,1))
+
+# matrix correlation: histogram
+hist(refmodel1.summary.group$ref1.cor.matrix,
+      main="",
+     xlab="",
+      las=1,
+      col = ref1,
+     xlim=c(0.0, 0.6),
+     breaks = 10)
+
+abline(v=observed.summary$obs.cor.matrix, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
+
+hist(refmodel2.summary.group$ref2.cor.matrix,
+      main="",
+     xlab="Spearman's rho",
+      las=1,
+      col = ref2,
+     xlim=c(0.0, 0.6),
+     breaks = 10)
+
+abline(v=observed.summary$obs.cor.matrix, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
+
+# save plot
+dev.print(pdf, file="plot.correlation.hist.pdf")
+```
+
+
 ```{r, corr.beans, cache=FALSE, fig.height=4, fig.width=5.75}
-# matrix correlation
+# matrix correlation using bean plot (not plotted in manuscript)
 beanplot(refmodel1.summary.group$ref1.cor.matrix, refmodel2.summary.group$ref2.cor.matrix, 
-         main="Matrix correlation between crowds and displacements", 
+         main="", 
          ylab="Spearman's rho", 
          xlab = "reference model", 
         # ylim = ,
@@ -124,7 +152,7 @@ beanplot(refmodel1.summary.group$ref1.cor.matrix, refmodel2.summary.group$ref2.c
                     c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 2
                     ),
          
-         border=crowds
+         border=beanborder
          )
 
 abline(h=observed.summary$obs.cor.matrix, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
@@ -150,7 +178,7 @@ beanplot(refmodel1.summary.group$run.cor, refmodel2.summary.group$run.cor,
                     c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 2
                     ),
          
-         border=crowds
+         border=beanborder
          )
 
 abline(h=observed.summary$obs.cor, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
@@ -168,20 +196,23 @@ par(mfrow=c(3,3))
 ## ref model 1
 # out-strength
 plot(bg_refmodel1$Rdisp.strength, bg_refmodel1$Rcrowd.strength, 
-     xlab ="displace", ylab = "crowd", main = "out strength", 
-     col = alpha(ref1, bean.alpha), pch = 19)
+     xlab ="", ylab = "crowd", main = "out strength", 
+     col = alpha(ref1, bean.alpha), pch = 19
+     )
 points(observed.summary.individual$Obdisp.strength,observed.summary.individual$Obcrowd.strength, col=alpha(obs.vals, pooled.alpha), pch = 19)
 
 # betweenness
 plot(bg_refmodel1$Rdisp.between, bg_refmodel1$Rcrowd.between, 
-     xlab ="displace", ylab = "crowd", main = "betweenness", 
-     col = alpha(ref1, bean.alpha), pch = 19)
+     xlab ="", ylab = "", main = "betweenness", 
+     col = alpha(ref1, bean.alpha), pch = 19,
+     xlim = c(0,150), ylim = c(0,150))
 points(observed.summary.individual$Obdisp.between,observed.summary.individual$Obcrowd.between, col=alpha(obs.vals, pooled.alpha), pch = 19)
 
 # eigenvector 
 plot(bg_refmodel1$Rdisp.ec, bg_refmodel1$Rcrowd.ec, 
-     xlab ="displace", ylab = "crowd", main = "eigenvector", 
-     col = alpha(ref1, bean.alpha), pch = 19)
+     xlab ="", ylab = "", main = "eigenvector", 
+     col = alpha(ref1, bean.alpha), pch = 19,
+     xlim = c(0,1), ylim = c(0,1))
 points(observed.summary.individual$Obdisp.ec,observed.summary.individual$Obcrowd.ec, col=alpha(obs.vals, pooled.alpha), pch = 19)
 
 ## ref model 2
@@ -193,14 +224,16 @@ points(observed.summary.individual$Obdisp.strength,observed.summary.individual$O
 
 # betweenness
 plot(bg_refmodel2$Rdisp.between, bg_refmodel2$Rcrowd.between, 
-     xlab ="displace", ylab = "crowd", main = "", 
-     col = alpha(ref2, bean.alpha), pch = 19)
+     xlab ="displace", ylab = "", main = "", 
+     col = alpha(ref2, bean.alpha), pch = 19,
+     xlim = c(0,150), ylim = c(0,150))
 points(observed.summary.individual$Obdisp.between,observed.summary.individual$Obcrowd.between, col=alpha(obs.vals, pooled.alpha), pch = 19)
 
 # eigenvector 
 plot(bg_refmodel2$Rdisp.ec, bg_refmodel2$Rcrowd.ec, 
-     xlab ="displace", ylab = "crowd", main = "", 
-     col = alpha(ref2, bean.alpha), pch = 19)
+     xlab ="displace", ylab = "", main = "", 
+     col = alpha(ref2, bean.alpha), pch = 19,
+     xlim = c(0,1), ylim = c(0,1))
 points(observed.summary.individual$Obdisp.ec,observed.summary.individual$Obcrowd.ec, col=alpha(obs.vals, pooled.alpha), pch = 19)
 
 ## Distribution plots of correlation strength ref model 1 and ref model 2 + observed value
@@ -226,7 +259,7 @@ abline(h=observed.summary$obs.cor.strength, col=alpha(obs.vals, pooled.alpha), l
 # betweenness centrality
 beanplot(refmodel1.summary$R.cor.between, refmodel2.summary$R.cor.between, 
          #main="betweenness centrality", 
-         ylab="Spearman's rho", log = "",
+         ylab="", log = "",
          xlab = "",  ylim=c(-0.2, 1.0),
          #add custom bean colorscrowds
            col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
@@ -245,7 +278,7 @@ abline(h=observed.summary$obs.cor.between, col=alpha(obs.vals, pooled.alpha), lw
 # eigenvector centrality
 beanplot(refmodel1.summary$R.cor.eigen, refmodel2.summary$R.cor.eigen, 
          #main="eigenvector centrality", 
-         ylab="Spearman's rho", log = "",
+         ylab="", log = "",
          xlab = "",  ylim=c(-0.2, 1.0),
          #add custom bean colorscrowds
            col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
@@ -606,7 +639,7 @@ p.ref2.trans
 ## Aggression strategies
 summary of number of runs per strategy and plot those with observed strategie in caption
 
-```{r, network.beans, cache=FALSE, fig.height=4, fig.width=5.75}
+```{r, network.beans, cache=FALSE, fig.height=3, fig.width=5.75}
 # observed strategies
 observed.summary$strategy.Obcrowd # "pure bully"
 observed.summary$strategy.Obdisp  # "pure bully"
@@ -614,7 +647,7 @@ observed.summary$Obstrategy.totalCD # "pure bully"
 
 # strategies per random run
 strategies.Rcrowd<-group_by(refmodel1.strategies, strategy.Rcrowd) %>%
-  tally() %>% 
+  summarise(n=n()) %>% 
   mutate(prop=n/100, behavior="crowd") %>%
   rename(strategy=strategy.Rcrowd) %>%
   add_row(strategy="close.competitor",n= 0,prop=0, behavior="crowd") %>%
@@ -639,12 +672,12 @@ strategies$strategy<-factor(strategies$strategy,
 
 strategies$behavior<-factor(strategies$behavior, 
                             levels = c("crowd", "displace", "sparse displace"),
-                            labels = c("ref1 crowds", "ref1 displace", "ref2 displace"))
+                            labels = c("Crowd \nRef. model 1", "Displace \nRef. model 1", "Displace \nRef. model 2"))
 
-ggplot(strategies, aes(x=behavior, y=prop, fill=strategy)) +
+ggplot(strategies, aes(x=behavior, y=n, fill=strategy)) +
   geom_col(aes(group= strategy), colour= beanborder) +
   theme_classic() +
-  labs(y="proportion", x="") +
+  labs(y="percent runs with strategy types", x="", fill= "strategies in reference runs") +
   theme(plot.caption=element_text(hjust = 0) ) +
   scale_fill_manual(values=c(alpha("lightgrey", 0.4),alpha("red", 0.4), alpha("blue", 0.4), alpha("black", 0.6))) 
 
