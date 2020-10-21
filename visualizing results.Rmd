@@ -70,12 +70,13 @@ col.dkbl <- "#0571b0"
 col.ltbl <- "#92c5de"  
 col.red  <- "#ca0020"
 col.yllw <- "#ffffbf"
+col.orng <- "#fc8d59"
 
 #set color by behavior
-crowds <- col.teal  
-displace <- col.dkgn
-obs.vals <- col.red
+crowds <- col.orng  # was col.teal 
+displace <- col.dkbl  # was  col.dkgn
 
+obs.vals <- col.red
 ref1.crowds <- col.yllw
 ref1.displace <- col.dkbl
 
@@ -468,7 +469,7 @@ beanplot(refmodel1.summary.group$Rcrowd.linearity, refmodel1.summary.group$Rdisp
   # add points for observed values
   points(1,observed.summary$Obcrowd.linearity, col= crowds, pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
   points(2,observed.summary$Obdisp.linearity, col= displace, pch=obsval.pch, cex=obsval.size, lwd=2) # displacements
-  points(3,observed.summary$Obcrowd.linearity, col= crowds , pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
+  points(3,observed.summary$Obcrowd.linearity, col= crowd.obs , pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
 
   points(1,observed.summary$Obcrowd.linearity, col= obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # crowds
   points(2,observed.summary$Obdisp.linearity, col= obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # displacements
@@ -667,9 +668,9 @@ beanplot(refmodel1.summary.group$Rcrowd.density, refmodel1.summary.group$Rdispla
          xlab = "", names = xlabels, 
          
          #add custom bean colorscrowds
-         col = list(c(alpha(crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+         col = list(c(alpha(ref1.crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
                     ),          
 
          border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
@@ -699,9 +700,9 @@ beanplot(refmodel1.summary.group$Rcrowd.prunk.pu, refmodel1.summary.group$Rdisp.
         xlab = "", names = xlabels, 
         
          #add custom bean colorscrowds
-         col = list(c(alpha(crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+         col = list(c(alpha(ref1.crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
                     ),         
          border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
          what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
