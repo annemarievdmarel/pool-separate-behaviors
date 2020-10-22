@@ -239,7 +239,7 @@ points(observed.summary.individual$Obdisp.ec,observed.summary.individual$Obcrowd
 ## Distribution plots of correlation strength ref model 1 and ref model 2 + observed value
 
 # out strength
-beanplot(refmodel1.summary$R.cor.strength, refmodel2.summary$R.cor.strength, 
+beanplot(refmodel1.summary.group$R.cor.strength, refmodel2.summary.group$R.cor.strength, 
         # main="out-strength", 
          ylab="Spearman's rho", log = "",
          xlab = "",  ylim=c(-0.2, 1.0),
@@ -260,7 +260,7 @@ text(1, 0.4, "NS")
   text(2, 0.4, "NS")
 
 # betweenness centrality
-beanplot(refmodel1.summary$R.cor.between, refmodel2.summary$R.cor.between, 
+beanplot(refmodel1.summary.group$R.cor.between, refmodel2.summary.group$R.cor.between, 
          #main="betweenness centrality", 
          ylab="", log = "",
          xlab = "",  ylim=c(-0.2, 1.0),
@@ -282,7 +282,7 @@ text(1, 0.95, "NS")
 
 
 # eigenvector centrality
-beanplot(refmodel1.summary$R.cor.eigen, refmodel2.summary$R.cor.eigen, 
+beanplot(refmodel1.summary.group$R.cor.eigen, refmodel2.summary.group$R.cor.eigen, 
          #main="eigenvector centrality", 
          ylab="", log = "",
          xlab = "",  ylim=c(-0.2, 1.0),
@@ -292,7 +292,7 @@ beanplot(refmodel1.summary$R.cor.eigen, refmodel2.summary$R.cor.eigen,
                     )  
          ,
          border = beanborder,  las=1, 
-         ll = 0.01, beanlinewd = 2, maxstripline = 0.1, # maximum length of a beanline
+         ll = 0.01, beanlinewd = 2, maxstripline = 0.2, # maximum length of a beanline
          cutmin=0, cutmax=1,
          what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
 
