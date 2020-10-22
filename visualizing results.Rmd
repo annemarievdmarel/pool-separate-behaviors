@@ -256,6 +256,9 @@ beanplot(refmodel1.summary$R.cor.strength, refmodel2.summary$R.cor.strength,
 
 abline(h=observed.summary$obs.cor.strength, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
 
+text(1, 0.4, "NS")
+  text(2, 0.4, "NS")
+
 # betweenness centrality
 beanplot(refmodel1.summary$R.cor.between, refmodel2.summary$R.cor.between, 
          #main="betweenness centrality", 
@@ -273,6 +276,9 @@ beanplot(refmodel1.summary$R.cor.between, refmodel2.summary$R.cor.between,
          what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
 
 abline(h=observed.summary$obs.cor.between, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
+
+text(1, 0.95, "NS")
+  text(2, 0.95, "*")
 
 
 # eigenvector centrality
@@ -292,6 +298,8 @@ beanplot(refmodel1.summary$R.cor.eigen, refmodel2.summary$R.cor.eigen,
 
 abline(h=observed.summary$obs.cor.eigen, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC
 
+  text(1, 0.95, "NS")
+  text(2, 0.95, "NS")
 
 # save plot
 dev.print(pdf, file="plot.indvidual.pdf")
@@ -304,56 +312,30 @@ find proportion of random values less than the observed values, you can use this
   
 ```{r}
 # p-values 
-
-# out-degree
-prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rcrowd.degree<observed.summary.individual$Obcrowd.degree, ])/nrow(refmodel1.summary) 
-p.ref1.crowd.degree<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
-p.ref1.crowd.degree
-
-prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rdisp.degree<observed.summary.individual$Obdisp.degree, ])/nrow(refmodel1.summary) 
-p.ref1.disp.degree<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
-p.ref1.disp.degree
-
-prop.val <- nrow(refmodel2.summary[refmodel2.summary$Rdisp.degree<observed.summary$Obcrowd.degree, ])/nrow(refmodel2.summary.group) 
-p.ref2.degree<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
-p.ref2.degree
-
 # out-strength
-prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rcrowd.strength<observed.summary.individual$Obcrowd.strength, ])/nrow(refmodel1.summary.group) 
-p.ref1.crowd.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref1.crowd.strength
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.strength<observed.summary$obs.cor.strength, ])/nrow(refmodel1.summary.group) 
+p.ref1.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.strength
 
-prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rdisp.strength<observed.summary.individual$Obdisp.strength, ])/nrow(refmodel1.summary) 
-p.ref1.disp.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref1.disp.strength
-
-prop.val <- nrow(refmodel2.summary[refmodel2.summary$Rdisp.strength<observed.summary.individual$Obcrowd.steepness, ])/nrow(refmodel2.summary) 
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.strength<observed.summary$obs.cor.strength, ])/nrow(refmodel2.summary.group) 
 p.ref2.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
 p.ref2.strength
 
 # betweenness
-prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rcrowd.between<observed.summary.individual$Obcrowd.between, ])/nrow(refmodel1.summary.group) 
-p.ref1.crowd.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref1.crowd.between
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.between<observed.summary$obs.cor.between, ])/nrow(refmodel1.summary.group) 
+p.ref1.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.between
 
-prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rdisp.between<observed.summary.individual$Obdisp.between, ])/nrow(refmodel1.summary) 
-p.ref1.disp.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref1.disp.between
-
-prop.val <- nrow(refmodel2.summary[refmodel2.summary$Rdisp.between<observed.summary.individual$Obcrowd.between, ])/nrow(refmodel2.summary) 
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.between<observed.summary$obs.cor.between, ])/nrow(refmodel2.summary.group) 
 p.ref2.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
 p.ref2.between
 
 # eigenvector
-prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rcrowd.ec<observed.summary.individual$Obcrowd.ec, ])/nrow(refmodel1.summary.group) 
-p.ref1.crowd.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref1.crowd.ec
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.eigen<observed.summary$obs.cor.eigen, ])/nrow(refmodel1.summary.group) 
+p.ref1.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.ec
 
-prop.val <- nrow(refmodel1.summary[refmodel1.summary$Rdisp.ec<observed.summary.individual$Obdisp.ec, ])/nrow(refmodel1.summary) 
-p.ref1.disp.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref1.disp.ec
-
-prop.val <- nrow(refmodel2.summary[refmodel2.summary$Rdisp.ec<observed.summary.individual$Obcrowd.ec, ])/nrow(refmodel2.summary) 
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.eigen<observed.summary$obs.cor.eigen, ])/nrow(refmodel2.summary.group) 
 p.ref2.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
 p.ref2.ec
 ```
