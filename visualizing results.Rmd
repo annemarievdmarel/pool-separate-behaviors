@@ -161,28 +161,6 @@ abline(h=observed.summary$obs.cor.matrix, col=alpha(obs.vals, pooled.alpha), lwd
 dev.print(pdf, file="plot.correlation.beans.pdf")
 ```
 
-```{r}
-# spearman correlation (not plotted in manuscript)
-beanplot(refmodel1.summary.group$run.cor, refmodel2.summary.group$run.cor, 
-         main="Correlation between crowds and displacements", 
-         ylab="Spearman's rho", 
-         xlab = "reference model", 
-         ylim = c(min(refmodel2.summary$run.cor-0.1), 
-                  max(0.5)),
-         las=1, 
-         # col = list(c(alpha(displace, bean.alpha), alpha(col.ltgn, bean.alpha)), #fill colors
-         #            c(alpha(beaninlines, 0.5), alpha(beaninlines, 0.5)) #bean colors
-         #            ),
-         
-         col = list(c(alpha(displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(col.ltgn, bean.alpha), beaninlines, beaninlines, "black") #bean 2
-                    ),
-         
-         border=beanborder
-         )
-
-abline(h=observed.summary$obs.cor, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
-```
 
 ## individual-based measures
 scatterplots + correlations in one using Base plot
@@ -315,6 +293,7 @@ find proportion of random values less than the observed values, you can use this
 # out-strength
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.strength<observed.summary$obs.cor.strength, ])/nrow(refmodel1.summary.group) 
 p.ref1.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.strength<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val))
 p.ref1.strength
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.strength<observed.summary$obs.cor.strength, ])/nrow(refmodel2.summary.group) 
@@ -438,6 +417,19 @@ prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.apl<obser
 p.ref2.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
 p.ref2.apl
 
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.apl<observed.summary$ObtotalCD.apl, ])/nrow(refmodel1.summary.group) 
+p.ref1.apl.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.apl.crowd.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.eff<observed.summary$ObtotalCD.apl, ])/nrow(refmodel1.summary.group) 
+p.ref1.apl.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.apl.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.eff<observed.summary$ObtotalCD.apl, ])/nrow(refmodel2.summary.group) 
+p.ref2.apl.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.apl.pool
+
+
 # effectiveness
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.eff<observed.summary$Obcrowd.eff, ])/nrow(refmodel1.summary.group) 
 p.ref1.crowd.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
@@ -450,6 +442,19 @@ p.ref1.disp.eff
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.eff<observed.summary$Obcrowd.eff, ])/nrow(refmodel2.summary.group) 
 p.ref2.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
 p.ref2.eff
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.eff<observed.summary$ObtotalCD.eff, ])/nrow(refmodel1.summary.group) 
+p.ref1.eff.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.eff.crowd.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.eff<observed.summary$ObtotalCD.eff, ])/nrow(refmodel1.summary.group) 
+p.ref1.eff.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.eff.disp.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.eff<observed.summary$ObtotalCD.eff, ])/nrow(refmodel2.summary.group) 
+p.ref2.eff.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.eff.pool
+
 
 ```
 
@@ -590,6 +595,24 @@ prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.linearity
 p.ref2.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
 p.ref2.lin
 
+# pooled
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.linearity<observed.summary$ObtotalCD.linearity, ])/nrow(refmodel1.summary.group) 
+p.ref1.lin.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.lin.crowd.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.linearity<observed.summary$ObtotalCD.linearity, ])/nrow(refmodel1.summary.group) 
+p.ref1.lin.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.lin.disp.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.linearity<observed.summary$ObtotalCD.linearity, ])/nrow(refmodel2.summary.group) 
+p.ref2.lin.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.lin.pool
+
+
+```
+  
+```{r}
+
 # steepness
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.steepness<observed.summary$Obcrowd.steepness, ])/nrow(refmodel1.summary.group) 
 p.ref1.crowd.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
@@ -603,6 +626,23 @@ prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.steepness
 p.ref2.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
 p.ref2.steep
 
+# pooled
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.steepness<observed.summary$ObtotalCD.steepness, ])/nrow(refmodel1.summary.group) 
+p.ref1.steep.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.steep.crowd.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.steepness<observed.summary$ObtotalCD.steepness, ])/nrow(refmodel1.summary.group) 
+p.ref1.steep.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.steep.disp.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.steepness<observed.summary$ObtotalCD.steepness, ])/nrow(refmodel2.summary.group) 
+p.ref2.steep.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.steep.pool
+
+
+```
+
+```{r}
 # transitivity
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.transi.ttri<observed.summary$Obcrowd.transi.ttri, ])/nrow(refmodel1.summary.group) 
 p.ref1.crowd.trans<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
@@ -615,7 +655,23 @@ p.ref1.disp.trans
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.transi.ttri<observed.summary$Obcrowd.transi.ttri, ])/nrow(refmodel1.summary.group) 
 p.ref2.trans<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
 p.ref2.trans
+
+# pooled
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.transi.ttri<observed.summary$ObtotalCD.transi.ttri, ])/nrow(refmodel1.summary.group) 
+p.ref1.trans.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.trans.crowd.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.transi.ttri<observed.summary$ObtotalCD.transi.ttri, ])/nrow(refmodel1.summary.group) 
+p.ref1.trans.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.trans.disp.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.transi.ttri<observed.summary$ObtotalCD.transi.ttri, ])/nrow(refmodel2.summary.group) 
+p.ref2.trans.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.trans.pool
+
 ```
+
+  
   
 
 ## Aggression strategies
