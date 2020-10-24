@@ -106,7 +106,7 @@ ylim<-c(0,1)
 
 
 
-## correlation
+## correlation (not provided in the manuscript)
 ```{r, corr.hist, cache=FALSE, fig.height=5, fig.width=4.5}
 par(mfrow=c(2,1))
 
@@ -135,31 +135,6 @@ abline(v=observed.summary$obs.cor.matrix, col=alpha(obs.vals, pooled.alpha), lwd
 dev.print(pdf, file="plot.correlation.hist.pdf")
 ```
 
-
-```{r, corr.beans, cache=FALSE, fig.height=4, fig.width=5.75}
-# matrix correlation using bean plot (not plotted in manuscript)
-beanplot(refmodel1.summary.group$ref1.cor.matrix, refmodel2.summary.group$ref2.cor.matrix, 
-         main="", 
-         ylab="Spearman's rho", 
-         xlab = "reference model", 
-        # ylim = ,
-         las=1, 
-         # col = list(c(alpha(displace, bean.alpha), alpha(col.ltgn, bean.alpha)), #fill colors
-         #            c(alpha(beaninlines, 0.5), alpha(beaninlines, 0.5)) #bean colors
-         #            ),
-         
-         col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
-                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 2
-                    ),
-         
-         border=beanborder
-         )
-
-abline(h=observed.summary$obs.cor.matrix, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
-
-# save plot
-dev.print(pdf, file="plot.correlation.beans.pdf")
-```
 
 
 ## individual-based measures
