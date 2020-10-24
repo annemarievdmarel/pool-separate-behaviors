@@ -267,31 +267,36 @@ find proportion of random values less than the observed values, you can use this
 # p-values 
 # out-strength
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.strength<observed.summary$obs.cor.strength, ])/nrow(refmodel1.summary.group) 
-p.ref1.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref1.strength<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val))
+#p.ref1.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.strength<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val),prop.val) # 2-sided
 p.ref1.strength
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.strength<observed.summary$obs.cor.strength, ])/nrow(refmodel2.summary.group) 
-p.ref2.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+# p.ref2.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.strength<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref2.strength
 
 # betweenness
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.between<observed.summary$obs.cor.between, ])/nrow(refmodel1.summary.group) 
-p.ref1.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.between <- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.between <- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.between
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.between<observed.summary$obs.cor.between, ])/nrow(refmodel2.summary.group) 
-p.ref2.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref2.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.between<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref2.between
 
 # eigenvector
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.eigen<observed.summary$obs.cor.eigen, ])/nrow(refmodel1.summary.group) 
-p.ref1.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.ec <- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.ec <- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.ec
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.eigen<observed.summary$obs.cor.eigen, ])/nrow(refmodel2.summary.group) 
-p.ref2.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref2.ec
+#p.ref2.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.ec <- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
+p.ref2.ec 
 ```
 
 
@@ -381,58 +386,78 @@ find proportion of random values less than the observed values, you can use this
 
 # average path length
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.apl<observed.summary$Obcrowd.apl, ])/nrow(refmodel1.summary.group) 
-p.ref1.crowd.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+# p.ref1.crowd.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.crowd.apl <- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.crowd.apl
 
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.apl<observed.summary$Obdisp.apl, ])/nrow(refmodel1.summary.group) 
-p.ref1.disp.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+#p.ref1.disp.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.disp.apl<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.disp.apl
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.apl<observed.summary$Obcrowd.apl, ])/nrow(refmodel2.summary.group) 
-p.ref2.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+#p.ref2.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref2.apl<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref2.apl
 
-prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.apl<observed.summary$ObtotalCD.apl, ])/nrow(refmodel1.summary.group) 
-p.ref1.apl.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref1.apl.crowd.pool
-
-prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.eff<observed.summary$ObtotalCD.apl, ])/nrow(refmodel1.summary.group) 
-p.ref1.apl.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref1.apl.pool
-
-prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.eff<observed.summary$ObtotalCD.apl, ])/nrow(refmodel2.summary.group) 
-p.ref2.apl.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
-p.ref2.apl.pool
 
 
 # effectiveness
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.eff<observed.summary$Obcrowd.eff, ])/nrow(refmodel1.summary.group) 
-p.ref1.crowd.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.crowd.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.crowd.eff<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.crowd.eff
 
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.eff<observed.summary$Obdisp.eff, ])/nrow(refmodel1.summary.group) 
-p.ref1.disp.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.disp.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.disp.eff<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.disp.eff
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.eff<observed.summary$Obcrowd.eff, ])/nrow(refmodel2.summary.group) 
-p.ref2.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref2.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.eff<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref2.eff
 
+
+```
+```{r}
+# p-values network measures: pooled
+
+# average path length
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.apl<observed.summary$ObtotalCD.apl, ])/nrow(refmodel1.summary.group) 
+#p.ref1.apl.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.apl.crowd.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
+p.ref1.apl.crowd.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.eff<observed.summary$ObtotalCD.apl, ])/nrow(refmodel1.summary.group) 
+#p.ref1.apl.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.apl.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
+p.ref1.apl.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.eff<observed.summary$ObtotalCD.apl, ])/nrow(refmodel2.summary.group) 
+#p.ref2.apl.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.apl.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
+p.ref2.apl.pool
+
+
+# effectiveness
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.eff<observed.summary$ObtotalCD.eff, ])/nrow(refmodel1.summary.group) 
-p.ref1.eff.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.eff.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.eff.crowd.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.eff.crowd.pool
 
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.eff<observed.summary$ObtotalCD.eff, ])/nrow(refmodel1.summary.group) 
-p.ref1.eff.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.eff.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.eff.disp.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.eff.disp.pool
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.eff<observed.summary$ObtotalCD.eff, ])/nrow(refmodel2.summary.group) 
-p.ref2.eff.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref2.eff.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.eff.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref2.eff.pool
 
 
 ```
-
 
 
 # Hierarchy structure plots combined
@@ -559,28 +584,34 @@ find proportion of random values less than the observed values, you can use this
 
 # linearity
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.linearity<observed.summary$Obcrowd.linearity, ])/nrow(refmodel1.summary.group) 
-p.ref1.crowd.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+#p.ref1.crowd.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.crowd.lin<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.crowd.lin
 
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.linearity<observed.summary$Obdisp.linearity, ])/nrow(refmodel1.summary.group) 
-p.ref1.disp.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+#p.ref1.disp.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.disp.lin<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.disp.lin
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.linearity<observed.summary$Obcrowd.linearity, ])/nrow(refmodel2.summary.group) 
-p.ref2.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+#p.ref2.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref2.lin<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref2.lin
 
 # pooled
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.linearity<observed.summary$ObtotalCD.linearity, ])/nrow(refmodel1.summary.group) 
-p.ref1.lin.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.lin.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.lin.crowd.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.lin.crowd.pool
 
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.linearity<observed.summary$ObtotalCD.linearity, ])/nrow(refmodel1.summary.group) 
-p.ref1.lin.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.lin.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.lin.disp.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.lin.disp.pool
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.linearity<observed.summary$ObtotalCD.linearity, ])/nrow(refmodel2.summary.group) 
-p.ref2.lin.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.lin.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
+#p.ref2.lin.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
 p.ref2.lin.pool
 
 
@@ -590,28 +621,34 @@ p.ref2.lin.pool
 
 # steepness
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.steepness<observed.summary$Obcrowd.steepness, ])/nrow(refmodel1.summary.group) 
-p.ref1.crowd.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.crowd.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.crowd.steep<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.crowd.steep
 
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.steepness<observed.summary$Obdisp.steepness, ])/nrow(refmodel1.summary.group) 
-p.ref1.disp.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.disp.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.disp.steep<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.disp.steep
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.steepness<observed.summary$Obcrowd.steepness, ])/nrow(refmodel2.summary.group) 
-p.ref2.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref2.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.steep<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref2.steep
 
 # pooled
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.steepness<observed.summary$ObtotalCD.steepness, ])/nrow(refmodel1.summary.group) 
-p.ref1.steep.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.steep.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.steep.crowd.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.steep.crowd.pool
 
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.steepness<observed.summary$ObtotalCD.steepness, ])/nrow(refmodel1.summary.group) 
-p.ref1.steep.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.steep.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.steep.disp.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.steep.disp.pool
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.steepness<observed.summary$ObtotalCD.steepness, ])/nrow(refmodel2.summary.group) 
-p.ref2.steep.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref2.steep.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.steep.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref2.steep.pool
 
 
@@ -620,28 +657,34 @@ p.ref2.steep.pool
 ```{r}
 # transitivity
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.transi.ttri<observed.summary$Obcrowd.transi.ttri, ])/nrow(refmodel1.summary.group) 
-p.ref1.crowd.trans<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+#p.ref1.crowd.trans<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.crowd.trans<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.crowd.trans
 
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.transi.ttri<observed.summary$Obdisp.transi.ttri, ])/nrow(refmodel1.summary.group) 
-p.ref1.disp.trans <- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.disp.trans <- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.disp.trans <- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.disp.trans 
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.transi.ttri<observed.summary$Obcrowd.transi.ttri, ])/nrow(refmodel1.summary.group) 
-p.ref2.trans<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref2.trans<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.trans<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref2.trans
 
 # pooled
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.transi.ttri<observed.summary$ObtotalCD.transi.ttri, ])/nrow(refmodel1.summary.group) 
-p.ref1.trans.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.trans.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.trans.crowd.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.trans.crowd.pool
 
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.transi.ttri<observed.summary$ObtotalCD.transi.ttri, ])/nrow(refmodel1.summary.group) 
-p.ref1.trans.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.trans.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.trans.disp.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.trans.disp.pool
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.transi.ttri<observed.summary$ObtotalCD.transi.ttri, ])/nrow(refmodel2.summary.group) 
-p.ref2.trans.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref2.trans.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.trans.pool<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref2.trans.pool
 
 ```
@@ -781,28 +824,34 @@ find proportion of random values less than the observed values, you can use this
 
 # density
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.density<observed.summary$Obcrowd.density, ])/nrow(refmodel1.summary.group) 
-p.ref1.crowd.den<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+#p.ref1.crowd.den<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.crowd.den<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.crowd.den
 
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisplace.density<observed.summary$Obdisplace.density, ])/nrow(refmodel1.summary.group) 
-p.ref1.disp.den<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+#p.ref1.disp.den<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.disp.den<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.disp.den
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisplace.density<observed.summary$Obcrowd.density, ])/nrow(refmodel2.summary.group) 
-p.ref2.den<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+#p.ref2.den<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref2.den<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref2.den
 
 # sparseness
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.prunk.pu<observed.summary$Obcrowd.prunk.pu, ])/nrow(refmodel1.summary.group) 
-p.ref1.crowd.sparse<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.crowd.sparse<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.crowd.sparse<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.crowd.sparse
 
 prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.prunk.pu<observed.summary$Obdisp.prunk.pu, ])/nrow(refmodel1.summary.group) 
-p.ref1.disp.sparse<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+#p.ref1.disp.sparse<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.disp.sparse<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
 p.ref1.disp.sparse
 
 prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.prunk.pu<observed.summary$Obcrowd.prunk.pu, ])/nrow(refmodel2.summary.group) 
-p.ref2.sparse<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.sparse<- ifelse(prop.val>0.025, ifelse(prop.val<0.975, 1-prop.val, prop.val), prop.val) # 2-sided
+#p.ref2.sparse<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
 p.ref2.sparse
 ```
 
