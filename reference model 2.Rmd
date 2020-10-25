@@ -331,10 +331,10 @@ length(unique(ref.model$runID))
 ## loop to compare random to observed displacements for each runID
 uniqrun = unique(ref.model$runID)
 randvobs = data.frame(nmatches = numeric(), compar = character())
-nrowxrun = nrow(sample.obs.CD)
+nrowxrun = nrow(observedXdyad)
 
 for(i in uniqrun){
-        nmatches = sum(ref.model[ref.model$runID==i,]$random.displace==ref.model[ref.model$runID==i,]$displace)
+        nmatches = sum(ref.model[ref.model$runID==i,]$random.displace==ref.model[ref.model$runID==i,]$sample.displace)
         run = i
         df = as.data.frame(nmatches, run)
         randvobs=rbind.data.frame(randvobs,df)
@@ -347,24 +347,44 @@ for(i in uniqrun){
 #check
 randvobs
 
-# sampleID
-uniqrun = unique(ref.model$sampleID)
-randvobs = data.frame(nmatches = numeric(), compar = character())
-nrowxrun = nrow(sample.obs.CD)
 
-for(i in uniqrun){
-        nmatches = sum(ref.model[ref.model$sampleID==i,]$random.displace==ref.model[ref.model$sampleID==i,]$displace)
-        run = i
-        df = as.data.frame(nmatches, run)
-        randvobs=rbind.data.frame(randvobs,df)
-        
-        if(sum(randvobs[,1]==nrowxrun)>0){
+#loop that compares random.crowds (or sample.displace) from each run to all other runs 
+uniqrun = unique(ref.model$runID)
+empdf = data.frame(nmatches = numeric(), compar = character())
+nrowxrun = nrow(observedXdyad)
+
+        for (i in uniqrun) {
+                
+                #make uniqrunj (a list of all runIDs that come after i)
+                n= which(!is.na(match(uniqrun,i))) 
+                uniqrunj = uniqrun[n:length(uniqrun)] 
+                uniqrunj = uniqrunj[uniqrunj!=i] 
+                        
+                for (j in uniqrunj) {
+                  
+                        nmatches = sum(ref.model[ref.model$runID==i,]$sample.displace==ref.model[ref.model$runID==j,]$sample.displace)    # gives the number of dyads for which the number of crowds in run i matches that in run j
+                        
+                        compar = paste(i,j, sep="-") #a vector to keep track of which runs are being compared
+                        df = as.data.frame(nmatches,compar)
+                        empdf=rbind.data.frame(empdf,df)
+                  
+                        if(sum(empdf[,1]==nrowxrun)>0){
                                 break
-                        } #if there is at least 1 occurrence of a complete match between random.displace and observed.displace columns, then break the loop. No more comparisons will be made. Look at end of randvobs to see which runs had a complete match
-}
-
-#check
-randvobs
+                        } #if there is at least 1 occurrence of a complete match between random.crowd columns from the two runs, then break the inner loop
+                        
+                }
+        
+                val= as.numeric(substr(i,4,6))
+                if(val %% 10==0) {
+              cat(paste0("iteration: ", val, "\n"))
+                   }# see loop progress at every 10 iterations
+                               
+                if(sum(empdf[,1]==nrowxrun)>0){
+                        break
+                } #if there is at least 1 occurrence of a complete match between random.crowd columns from the two runs, then break the entire loop - no more comparisons will be made. Look at end of empdf to see which runs had a complete match
+                
+        } #returns empdf with number of matches for each pair of runs being compared
+tail(empdf)
 
 ```
 
