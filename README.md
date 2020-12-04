@@ -26,3 +26,5 @@ The R markdown files in the folder R-code contain all the code to reproduce our 
 The output of the code is available in the folder cached-data and the plots in the folder raw-plots. 
 The datafile is called "ANALYZE.aggDC.csv"
 
+https://zenodo.org/badge/latestdoi/266793386 
+This work is licensed under CC BY-NC 4.0
