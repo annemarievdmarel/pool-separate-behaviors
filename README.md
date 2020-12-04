@@ -1,5 +1,7 @@
 # pool-separate-behaviors
 
+van der Marel, A., Prasher, S., Carminito, C., O’Connell, C., Phillips, A., Kluever, B. M., & Hobson, E. A. (2020). A framework to evaluate whether to pool or separate behaviors in a multilayer network. ArXiv, 2007.09743. 
+
 We developed a 3-step framework to examine the implications of splitting or pooling potentially-related behaviors before deciding on how to construct the layers of networks in a multilevel network analysis. For this framework, we used two agonistic behaviors (crowds and displacements) in monk parakeets. 
 
 In step 1 (initial check), we questioned whether:
