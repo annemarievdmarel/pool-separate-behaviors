@@ -1,0 +1,715 @@
+---
+title: "Visualizing results"
+author: "van der Marel, Hobson, Prasher"
+date: "01/06/2020"
+output: html_document
+---
+
+Comparison of real vs randomized data in 4-6 plots:
+- correlation crowds vs displacements
+Individual-based measures
+- outstrength
+- eigenvector centrality
+Hierarchy structure
+- linearity
+- steepness
+- transitivity
+Network-based measures
+- density
+- sparseness
+Aggression pattern
+- strategies
+
+# load packages
+```{r setup, include=FALSE}
+library(beanplot)
+library(scales)
+library(ggplot2)
+library(dplyr)
+library(ggpubr)
+library(tidyr)
+
+```
+
+# Import data
+```{r}
+# summaries
+observed.summary <- read.csv("ANALYZE-SUMM.observed.csv")
+head(observed.summary)
+observed.summary.individual<- read.csv("ANALYZE-SUMM.observed.individual.csv")
+
+refmodel1.summary<- read.csv("ANALYZE-SUMM.refmodel1.csv") # reference model 1
+head(refmodel1.summary)
+refmodel1.summary.group <- refmodel1.summary %>% group_by(run.code) %>% slice(1) %>%
+  select(-X)
+
+refmodel2.summary<-read.csv("ANALYZE-SUMM.refmodel2.csv") # reference model 2
+head(refmodel2.summary)
+refmodel2.summary.group <- refmodel2.summary %>% group_by(run.code) %>% slice(1) %>%
+  select(-X)
+
+## reference model strategies
+refmodel1.strategies <- read.csv("ANALYZE_SUMM.refmodel.strategies.csv") 
+str(refmodel1.strategies)
+refmodel2.strategies<- read.csv("ANALYZE_SUMM.refmodel2.strategies.csv") 
+
+```
+
+#### Distribution plots
+
+set color and other parameters
+```{r}
+# set color and other parameters
+col.teal <- "#1f78b4" #use for crowds
+col.ltgn <- "#b2df8a" #use for sparse displace
+col.dkgn <- "#33a02c" #use for regular displace
+col.lttl <- "#a6cee3"
+col.dkrd <- "#ca0020"
+col.prpl <- "#7b3294"
+col.dkbl <- "#0571b0"
+col.ltbl <- "#92c5de"  
+col.red  <- "#ca0020"
+col.orng <- "#fdae61"
+
+#set color by behavior
+crowds <- col.orng  # was col.teal 
+displace <- col.dkbl  # was  col.dkgn
+
+obs.vals <- col.red
+ref1.crowds <- col.orng
+ref1.displace <- col.dkbl
+
+# set color by ref model
+ref1 <- col.dkbl
+ref2 <- col.ltbl
+
+#set plot color by plot element
+bean.alpha <- 0.4
+
+
+beaninlines <- alpha("black", 0.2)
+beanoutlines<- alpha("black", 0.2)
+beanavgines <- "purple"
+beanborder <- alpha("black", 0.6)
+
+pooled.alpha <- 0.7
+linewidth <- 1
+xlabels <- c("Crowd \nRef. model 1", "Displace \nRef. model 1", "Displace \nRef. model 2")
+obsval.pch <- 5
+obsval.size <- 2.5
+obsval.hlt.pch <- 8  # asterisk  --> significant result
+obsval.hlt.pch.plus <- 16 # plus ---> non-significant result
+obsval.hlt.cex <- 1
+ylim<-c(0,1)
+
+```
+
+
+
+## correlation (not provided in the manuscript)
+```{r, corr.hist, cache=FALSE, fig.height=5, fig.width=4.5}
+par(mfrow=c(2,1))
+
+# matrix correlation: histogram
+hist(refmodel1.summary.group$ref1.cor.matrix,
+      main="",
+     xlab="",
+      las=1,
+      col = ref1,
+     xlim=c(0.0, 0.6),
+     breaks = 10)
+
+abline(v=observed.summary$obs.cor.matrix, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
+
+hist(refmodel2.summary.group$ref2.cor.matrix,
+      main="",
+     xlab="Spearman's rho",
+      las=1,
+      col = ref2,
+     xlim=c(0.0, 0.6),
+     breaks = 10)
+
+abline(v=observed.summary$obs.cor.matrix, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
+
+# save plot
+dev.print(pdf, file="plot.correlation.hist.pdf")
+```
+
+
+
+## individual-based measures
+scatterplots + correlations in one using Base plot
+```{r, individual.beans.base, cache=FALSE, fig.height=6, fig.width=7.5}
+
+bg_refmodel1 <- select(refmodel1.summary, -run.code)
+bg_refmodel2 <- select(refmodel2.summary, -run.code)
+
+par(mfrow=c(3,3))
+
+## ref model 1
+# out-strength
+plot(bg_refmodel1$Rdisp.strength, bg_refmodel1$Rcrowd.strength, 
+     xlab ="", ylab = "crowd", main = "out strength", 
+     col = alpha(ref1, bean.alpha), pch = 19
+     )
+points(observed.summary.individual$Obdisp.strength,observed.summary.individual$Obcrowd.strength, col=alpha(obs.vals, pooled.alpha), pch = 19)
+
+# betweenness
+plot(bg_refmodel1$Rdisp.between, bg_refmodel1$Rcrowd.between, 
+     xlab ="", ylab = "", main = "betweenness", 
+     col = alpha(ref1, bean.alpha), pch = 19,
+     xlim = c(0,150), ylim = c(0,150))
+points(observed.summary.individual$Obdisp.between,observed.summary.individual$Obcrowd.between, col=alpha(obs.vals, pooled.alpha), pch = 19)
+
+# eigenvector 
+plot(bg_refmodel1$Rdisp.ec, bg_refmodel1$Rcrowd.ec, 
+     xlab ="", ylab = "", main = "eigenvector", 
+     col = alpha(ref1, bean.alpha), pch = 19,
+     xlim = c(0,1), ylim = c(0,1))
+points(observed.summary.individual$Obdisp.ec,observed.summary.individual$Obcrowd.ec, col=alpha(obs.vals, pooled.alpha), pch = 19)
+
+## ref model 2
+# out strength
+plot(bg_refmodel2$Rdisp.strength, bg_refmodel2$Rcrowd.strength, 
+     xlab ="displace", ylab = "crowd", main = "", 
+     col = alpha(ref2, bean.alpha), pch = 19)
+points(observed.summary.individual$Obdisp.strength,observed.summary.individual$Obcrowd.strength, col=alpha(obs.vals, pooled.alpha), pch = 19)
+
+# betweenness
+plot(bg_refmodel2$Rdisp.between, bg_refmodel2$Rcrowd.between, 
+     xlab ="displace", ylab = "", main = "", 
+     col = alpha(ref2, bean.alpha), pch = 19,
+     xlim = c(0,150), ylim = c(0,150))
+points(observed.summary.individual$Obdisp.between,observed.summary.individual$Obcrowd.between, col=alpha(obs.vals, pooled.alpha), pch = 19)
+
+# eigenvector 
+plot(bg_refmodel2$Rdisp.ec, bg_refmodel2$Rcrowd.ec, 
+     xlab ="displace", ylab = "", main = "", 
+     col = alpha(ref2, bean.alpha), pch = 19,
+     xlim = c(0,1), ylim = c(0,1))
+points(observed.summary.individual$Obdisp.ec,observed.summary.individual$Obcrowd.ec, col=alpha(obs.vals, pooled.alpha), pch = 19)
+
+## Distribution plots of correlation strength ref model 1 and ref model 2 + observed value
+
+# out strength
+beanplot(refmodel1.summary.group$R.cor.strength, refmodel2.summary.group$R.cor.strength, 
+        # main="out-strength", 
+         ylab="Spearman's rho", log = "",
+         xlab = "",  ylim=c(-0.2, 1.0),
+         #add custom bean colorscrowds
+           col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 2
+                    ),
+        
+         border = beanborder, 
+         las=1, 
+         ll = 0.01, beanlinewd = 2, maxstripline = 0.1, # maximum length of a beanline
+         cutmin=0, cutmax=1,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+abline(h=observed.summary$obs.cor.strength, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
+
+text(1, 0.4, "NS")
+  text(2, 0.4, "NS")
+
+# betweenness centrality
+beanplot(refmodel1.summary.group$R.cor.between, refmodel2.summary.group$R.cor.between, 
+         #main="betweenness centrality", 
+         ylab="", log = "",
+         xlab = "",  ylim=c(-0.2, 1.0),
+         #add custom bean colorscrowds
+           col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 2
+                    ),
+        
+         border = beanborder, 
+         las=1, 
+         ll = 0.01, beanlinewd = 2, maxstripline = 0.1, # maximum length of a beanline
+         cutmin=0, cutmax=1,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+abline(h=observed.summary$obs.cor.between, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
+
+text(1, 0.95, "NS")
+  text(2, 0.95, "*")
+
+
+# eigenvector centrality
+beanplot(refmodel1.summary.group$R.cor.eigen, refmodel2.summary.group$R.cor.eigen, 
+         #main="eigenvector centrality", 
+         ylab="", log = "",
+         xlab = "",  ylim=c(-0.2, 1.0),
+         #add custom bean colorscrowds
+           col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 2
+                    )  
+         ,
+         border = beanborder,  las=1, 
+         ll = 0.01, beanlinewd = 2, maxstripline = 0.2, # maximum length of a beanline
+         cutmin=0, cutmax=1,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+abline(h=observed.summary$obs.cor.eigen, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC
+
+  text(1, 0.95, "NS")
+  text(2, 0.95, "NS")
+
+# save plot
+dev.print(pdf, file="plot.indvidual.pdf")
+```
+
+
+Are observed values significantly different from random values in reference models?
+
+find proportion of random values less than the observed values, you can use this as a kind of p value. p should be >0.975 for two-tailed test, >0.95 for one-tailed test for something significantly different from the random values in the reference model
+  
+```{r}
+# p-values 
+# out-strength
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.strength<observed.summary$obs.cor.strength, ])/nrow(refmodel1.summary.group) 
+p.ref1.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.strength
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.strength<observed.summary$obs.cor.strength, ])/nrow(refmodel2.summary.group) 
+p.ref2.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.strength
+
+# betweenness
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.between<observed.summary$obs.cor.between, ])/nrow(refmodel1.summary.group) 
+p.ref1.between <- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.between
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.between<observed.summary$obs.cor.between, ])/nrow(refmodel2.summary.group) 
+p.ref2.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.between
+
+# eigenvector
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.eigen<observed.summary$obs.cor.eigen, ])/nrow(refmodel1.summary.group) 
+p.ref1.ec <- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.ec
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.eigen<observed.summary$obs.cor.eigen, ])/nrow(refmodel2.summary.group) 
+p.ref2.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.ec 
+```
+
+
+Group-based metrics
+
+## network-based measures
+Note the different y-scales
+```{r, network.beans, cache=FALSE, fig.height=4, fig.width=5.75}
+par(mfrow=c(1,2))
+
+# average path length
+beanplot(refmodel1.summary.group$Rcrowd.apl, refmodel1.summary.group$Rdisp.apl, refmodel2.summary.group$Rdisp.apl,  
+         main="Average path length", 
+         ylab="", 
+         ylim = c(1,3), log="",
+         xlab = "", names = xlabels, 
+         
+         #add custom bean colorscrowds
+         col = list(c(alpha(ref1.crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+                    ),          
+
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
+         maxstripline = 0.1, # maximum length of a beanline
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+  # add points for observed values
+
+  points(1,observed.summary$Obcrowd.apl, col= crowds , pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
+  points(2,observed.summary$Obdisp.apl, col= displace, pch=obsval.pch, cex=obsval.size, lwd=2) # displacements
+  points(3,observed.summary$Obcrowd.apl, col= crowds , pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
+  
+  points(1,observed.summary$Obcrowd.apl, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # crowds
+  points(2,observed.summary$Obdisp.apl, col= obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # displacements
+  points(3,observed.summary$Obcrowd.apl, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # crowds
+  
+  text(1, 1.23, "NS")
+  text(2, 1.25, "*")
+  text(3, 1.25, "NS")
+  
+  abline(h=observed.summary$ObtotalCD.apl, col=alpha(obs.vals, pooled.alpha), lwd = linewidth) # add line estimate of totalDC 
+
+  
+  
+# efficiency
+beanplot(refmodel1.summary.group$Rcrowd.eff, refmodel1.summary.group$Rdisp.eff,refmodel2.summary.group$Rdisp.eff,
+         main ="Efficiency", 
+         ylab="", las=1, log="",
+         ylim= c(0.2,0.7),
+        xlab = "", names = xlabels, 
+        
+         #add custom bean colorscrowds
+         col = list(c(alpha(ref1.crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+                    ),         
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
+        maxstripline = 0.1, # maximum length of a beanline
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+  # add points for observed values
+
+  points(1,observed.summary$Obcrowd.eff, col= crowds , pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
+  points(2,observed.summary$Obdisp.eff, col= displace, pch=obsval.pch, cex=obsval.size, lwd=2) # displacements
+  points(3,observed.summary$Obcrowd.eff, col= crowds , pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
+  
+  points(1,observed.summary$Obcrowd.eff, col= obs.vals , pch=obsval.hlt.pch, cex=obsval.hlt.cex) # crowds
+  points(2,observed.summary$Obdisp.eff, col= obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # displacements
+  points(3,observed.summary$Obcrowd.eff, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # crowds
+  
+  text(1, 0.65, "*")
+  text(2, 0.65, "*")
+  text(3, 0.65, "NS")
+  
+  abline(h=observed.summary$ObtotalCD.eff, col=alpha(obs.vals, pooled.alpha), lwd = linewidth) # add line estimate of totalDC 
+  
+# save plot
+dev.print(pdf, file="plot.network.beans.pdf")  
+```
+Are observed values significantly different from random values in reference models?
+
+find proportion of random values less than the observed values, you can use this as a kind of p value. p should be >0.975 for two-tailed test, >0.95 for one-tailed test for something significantly different from the random values in the reference model
+  
+```{r}
+# p-values network measures
+
+# average path length
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.apl<observed.summary$Obcrowd.apl, ])/nrow(refmodel1.summary.group) 
+p.ref1.crowd.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.crowd.apl
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.apl<observed.summary$Obdisp.apl, ])/nrow(refmodel1.summary.group) 
+p.ref1.disp.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.disp.apl
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.apl<observed.summary$Obcrowd.apl, ])/nrow(refmodel2.summary.group) 
+p.ref2.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref2.apl
+
+
+
+# effectiveness
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.eff<observed.summary$Obcrowd.eff, ])/nrow(refmodel1.summary.group) 
+p.ref1.crowd.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.crowd.eff
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.eff<observed.summary$Obdisp.eff, ])/nrow(refmodel1.summary.group) 
+p.ref1.disp.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.disp.eff
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.eff<observed.summary$Obcrowd.eff, ])/nrow(refmodel2.summary.group) 
+p.ref2.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.eff
+
+
+```
+```{r}
+# p-values network measures: pooled
+
+# average path length
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.apl<observed.summary$ObtotalCD.apl, ])/nrow(refmodel1.summary.group) 
+p.ref1.apl.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.apl.crowd.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.eff<observed.summary$ObtotalCD.apl, ])/nrow(refmodel1.summary.group) 
+p.ref1.apl.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.apl.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.eff<observed.summary$ObtotalCD.apl, ])/nrow(refmodel2.summary.group) 
+p.ref2.apl.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.apl.pool
+
+
+# effectiveness
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.eff<observed.summary$ObtotalCD.eff, ])/nrow(refmodel1.summary.group) 
+p.ref1.eff.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.eff.crowd.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.eff<observed.summary$ObtotalCD.eff, ])/nrow(refmodel1.summary.group) 
+p.ref1.eff.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.eff.disp.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.eff<observed.summary$ObtotalCD.eff, ])/nrow(refmodel2.summary.group) 
+p.ref2.eff.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.eff.pool
+
+
+```
+
+
+# Hierarchy structure plots combined
+The distribution of randomized crowds and displacements (ref model 1) and sparse sampled displacements (ref model 2) with observed values
+
+NB! changed * to a dot sign if result wasn't significant but I don't think it is well visible. 
+```{r, hierarchy.beans, cache=FALSE, fig.height=4, fig.width=8.5}
+par(mfrow=c(1,3))
+
+
+# linearity
+beanplot(refmodel1.summary.group$Rcrowd.linearity, refmodel1.summary.group$Rdisp.linearity, refmodel2.summary.group$Rdisp.linearity, 
+         main="Linearity", 
+         ylab="h index", log = "", ylim = ylim,
+         xlab = "", names = xlabels, 
+         
+         #add custom bean colorscrowds
+         col = list(c(alpha(ref1.crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+                    ), 
+        
+         border = beanborder,  las=1, 
+         ll = 0.1, beanlinewd = 2,
+         cutmin=0, cutmax=1,
+         maxstripline = 0.1, # maximum length of a beanline
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+  # add points for observed values
+  points(1,observed.summary$Obcrowd.linearity, col= crowds, pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
+  points(2,observed.summary$Obdisp.linearity, col= displace, pch=obsval.pch, cex=obsval.size, lwd=2) # displacements
+  points(3,observed.summary$Obcrowd.linearity, col= crowd.obs , pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
+
+  points(1,observed.summary$Obcrowd.linearity, col= obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # crowds
+  points(2,observed.summary$Obdisp.linearity, col= obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # displacements
+  points(3,observed.summary$Obcrowd.linearity, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # crowds
+
+  abline(h=observed.summary$ObtotalCD.linearity, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
+
+  text(1, 0.6, "*")
+  text(2, 0.6, "*")
+  text(3, 0.6, "NS")
+
+# steepness
+beanplot(refmodel1.summary.group$Rcrowd.steepness, refmodel1.summary.group$Rdisp.steepness,refmodel2.summary.group$Rdisp.steepness,
+         main="Steepness", 
+         ylab="Dij", las=1, log = "",
+         ylim = ylim,
+         xlab = "", names = xlabels, 
+        
+         #add custom bean colorscrowds
+         col = list(c(alpha(ref1.crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+                    ),         
+         
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
+         cutmin=0, cutmax=1, #so distributions not plotted past 0-1 range
+         maxstripline = 0.1, # maximum length of a beanline
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+  # add points for observed values
+
+  points(1,observed.summary$Obcrowd.steepness, col=crowds, pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
+  points(2,observed.summary$Obdisp.steepness, col=displace, pch=obsval.pch, cex=obsval.size, lwd=2) # displacements
+  points(3,observed.summary$Obcrowd.steepness, col= crowds , pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
+  
+  points(1,observed.summary$Obcrowd.steepness, col=obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # crowds
+  points(2,observed.summary$Obdisp.steepness, col=obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # displacements
+  points(3,observed.summary$Obcrowd.steepness, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # crowds
+  
+  abline(h=observed.summary$ObtotalCD.steepness, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of totalDC 
+
+   text(1, 0.6, "*")
+  text(2, 0.6, "*")
+  text(3, 0.6, "NS")
+
+# transitivity
+beanplot(refmodel1.summary.group$Rcrowd.transi.ttri, refmodel1.summary.group$Rdisp.transi.ttri,
+         refmodel2.summary.group$Rdisp.transi.ttri,
+         main ="Transitivity", 
+         ylab="Triangle motifs",
+         ylim= ylim,
+         xlab = "", names = xlabels, 
+         
+         #add custom bean colorscrowds
+         col = list(c(alpha(ref1.crowds, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.displace, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+                    ), 
+         
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
+         cutmin=0, cutmax=1,
+         maxstripline = 0.1, # maximum length of a beanline
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+  # add points for observed values
+
+  points(1,observed.summary$Obcrowd.transi.ttri, col= crowds , pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
+  points(2,observed.summary$Obdisp.transi.ttri, col= displace, pch=obsval.pch, cex=obsval.size, lwd=2) # displacements
+  points(3,observed.summary$Obcrowd.transi.ttri, col= crowds , pch=obsval.pch, cex=obsval.size, lwd=2) # crowds
+  
+  points(1,observed.summary$Obcrowd.transi.ttri, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # crowds
+  points(2,observed.summary$Obdisp.transi.ttri, col= obs.vals, pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # displacements
+  points(3,observed.summary$Obcrowd.transi.ttri, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # crowds
+  
+  abline(h=observed.summary$ObtotalCD.transi.ttri, col=alpha(obs.vals, pooled.alpha), lwd = linewidth) # add line estimate of totalDC 
+
+  text(1, 0.1, "NS")
+  text(2, 0.1, "NS")
+  text(3, 0.1, "NS")
+  
+# save plot
+dev.print(pdf, file="plot.hierarchy.beans.pdf")
+  
+
+```
+Are observed values significantly different from random values in reference models?
+
+find proportion of random values less than the observed values, you can use this as a kind of p value. p should be >0.975 for two-tailed test, >0.95 for one-tailed test for something significantly different from the random values in the reference model
+  
+```{r}
+# p-values dominance measures
+
+# linearity
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.linearity<observed.summary$Obcrowd.linearity, ])/nrow(refmodel1.summary.group) 
+p.ref1.crowd.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.crowd.lin
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.linearity<observed.summary$Obdisp.linearity, ])/nrow(refmodel1.summary.group) 
+p.ref1.disp.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.disp.lin
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.linearity<observed.summary$Obcrowd.linearity, ])/nrow(refmodel2.summary.group) 
+p.ref2.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref2.lin
+
+# pooled
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.linearity<observed.summary$ObtotalCD.linearity, ])/nrow(refmodel1.summary.group) 
+p.ref1.lin.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.lin.crowd.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.linearity<observed.summary$ObtotalCD.linearity, ])/nrow(refmodel1.summary.group) 
+p.ref1.lin.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.lin.disp.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.linearity<observed.summary$ObtotalCD.linearity, ])/nrow(refmodel2.summary.group) 
+p.ref2.lin.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.lin.pool
+
+
+```
+  
+```{r}
+
+# steepness
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.steepness<observed.summary$Obcrowd.steepness, ])/nrow(refmodel1.summary.group) 
+p.ref1.crowd.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.crowd.steep
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.steepness<observed.summary$Obdisp.steepness, ])/nrow(refmodel1.summary.group) 
+p.ref1.disp.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.disp.steep
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.steepness<observed.summary$Obcrowd.steepness, ])/nrow(refmodel2.summary.group) 
+p.ref2.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.steep
+
+# pooled
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.steepness<observed.summary$ObtotalCD.steepness, ])/nrow(refmodel1.summary.group) 
+p.ref1.steep.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.steep.crowd.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.steepness<observed.summary$ObtotalCD.steepness, ])/nrow(refmodel1.summary.group) 
+p.ref1.steep.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.steep.disp.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.steepness<observed.summary$ObtotalCD.steepness, ])/nrow(refmodel2.summary.group) 
+p.ref2.steep.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.steep.pool
+
+
+```
+
+```{r}
+# transitivity
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.transi.ttri<observed.summary$Obcrowd.transi.ttri, ])/nrow(refmodel1.summary.group) 
+p.ref1.crowd.trans<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.crowd.trans
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.transi.ttri<observed.summary$Obdisp.transi.ttri, ])/nrow(refmodel1.summary.group) 
+p.ref1.disp.trans <- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.disp.trans 
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.transi.ttri<observed.summary$Obcrowd.transi.ttri, ])/nrow(refmodel1.summary.group) 
+p.ref2.trans<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.trans
+
+# pooled
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rcrowd.transi.ttri<observed.summary$ObtotalCD.transi.ttri, ])/nrow(refmodel1.summary.group) 
+p.ref1.trans.crowd.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.trans.crowd.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rdisp.transi.ttri<observed.summary$ObtotalCD.transi.ttri, ])/nrow(refmodel1.summary.group) 
+p.ref1.trans.disp.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.trans.disp.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rdisp.transi.ttri<observed.summary$ObtotalCD.transi.ttri, ])/nrow(refmodel2.summary.group) 
+p.ref2.trans.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.trans.pool
+
+```
+
+  
+  
+
+## Aggression strategies
+summary of number of runs per strategy and plot those with observed strategie in caption
+
+```{r, network.beans, cache=FALSE, fig.height=3, fig.width=5.75}
+# observed strategies
+observed.summary$strategy.Obcrowd # "pure bully"
+observed.summary$strategy.Obdisp  # "pure bully"
+observed.summary$Obstrategy.totalCD # "pure bully"
+
+# strategies per random run
+strategies.Rcrowd<-group_by(refmodel1.strategies, strategy.Rcrowd) %>%
+  summarise(n=n()) %>% 
+  mutate(prop=n/100, behavior="crowd") %>%
+  rename(strategy=strategy.Rcrowd) %>%
+  add_row(strategy="close.competitor",n= 0,prop=0, behavior="crowd") %>%
+   add_row(strategy="pure.undefined",n= 0,prop=0,  behavior="crowd")
+strategies.Rdisp<-group_by(refmodel1.strategies, strategy.Rdisp) %>%
+  summarise(n=n()) %>% 
+  mutate(prop=n/100, behavior="displace") %>%
+  rename(strategy=strategy.Rdisp) %>%
+  add_row(strategy="close.competitor",n= 0,prop=0,  behavior="displace") %>%
+   add_row(strategy="pure.undefined",n= 0,prop=0,  behavior="displace")
+strategies.refmodel2<-group_by(refmodel2.strategies, strategy.Rdisp) %>%
+  summarise(n=n()) %>% 
+  mutate(prop=n/100, behavior="sparse displace") %>%
+  rename(strategy=strategy.Rdisp) %>%
+  add_row(strategy="close.competitor",n= 0,prop=0,  behavior="sparse displace")
+# 51 % pure bully, 47% downward heuristic, and 2% undefined
+strategies<-rbind(strategies.Rcrowd, strategies.Rdisp, strategies.refmodel2)
+
+strategies$strategy<-factor(strategies$strategy, 
+                            levels =c("downward.heuristic","close.competitor","pure.bully", "pure.undefined") , 
+                            labels = c("Downward heuristic", "Close competitors", "Bullying", "Undefined") )
+
+strategies$behavior<-factor(strategies$behavior, 
+                            levels = c("crowd", "displace", "sparse displace"),
+                            labels = c("Crowd \nRef. model 1", "Displace \nRef. model 1", "Displace \nRef. model 2"))
+
+ggplot(strategies, aes(x=behavior, y=n, fill=strategy)) +
+  geom_col(aes(group= strategy), colour= beanborder) +
+  theme_classic() +
+  labs(y="percent runs with strategy types", x="", fill= "strategies in reference runs") +
+  theme(plot.caption=element_text(hjust = 0) ) +
+  scale_fill_manual(values=c(alpha("lightgrey", 0.4),alpha("red", 0.4), alpha("blue", 0.4), alpha("black", 0.6))) 
+
+#caption = "observed crowd = bullying \nobserved displace = bullying \nobserved pooled = bullying"
+
+# save plot
+dev.print(pdf, file="plot.strategies.pdf")
+
+```
+
+
+# sessioninfo
+```{r}
+sessionInfo()
+```

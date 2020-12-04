@@ -1,0 +1,567 @@
+---
+title: 'Observed data: initial check + summary'
+author: "Annemarie"
+date: "16/06/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+# Load packages
+```{r, include=FALSE}
+library(dplyr)
+library(tidyr)
+library(reshape2)
+library(stringr)
+library(purrr)
+library(EloRating)
+library(domstruc) #install_github("danm0nster/domstruc")
+library(ape)  # mantel test
+library(vegan) # mantel test
+library(einet) # effectiveness
+library(igraph)
+```
+
+# Import data
+```{r}
+ANALYZE_aggCD <- read.csv(file="ANALYZE.aggDC.csv") %>% 
+  rename(rowID=X) # only necessary if the first column is an X 
+observed <- ANALYZE_aggCD 
+
+head(observed)
+str(observed)
+
+# check 
+unique(observed$actor)
+unique(observed$subject)
+unique(observed$date)
+
+sum(observed$crowd)
+sum(observed$displace)
+sum(observed$total.DC)
+
+```
+
+
+## Helper functions & data
+```{r}
+
+#make matrix function (from dataframe, 1st col with row names)
+matrix.please<-function(x) {
+  m<-as.matrix(x[,-1])
+  rownames(m)<-x[,1]
+  m
+}
+
+#list of all valid color combinations/bird IDs
+bird.list <- c("BBB","BBG","BBR","BGB","BGG","BRB","BRR","GBB","GBG","GGB","GGG","GGR","GRG","GRR","RBB","RBG","RBR","RGG","RGR","RRG","RRR")
+length(bird.list)
+
+## dataframe of all possible dyad combinations
+dyad.list <- expand.grid(bird.list, bird.list) #head(dyad.list)
+names(dyad.list) <- c("actor", "subject")
+dyad.list <- subset(dyad.list, actor!=subject)
+dyad.list$dyadID <- paste(dyad.list$actor, dyad.list$subject, sep="-")
+dyad.list$actor <- as.character(dyad.list$actor)
+dyad.list$subject <- as.character(dyad.list$subject)
+head(dyad.list)
+
+```
+
+# Summarize data
+Find total events per dyad (pool across days)
+
+```{r}
+observedXdyad <- observed
+observedXdyad <- observedXdyad %>% 
+                  dplyr::group_by(actor, subject) %>% 
+                  dplyr::summarise(observed.crowd=sum(crowd),
+                          observed.displace=sum(displace),
+                          observed.totalCD=sum(total.DC)) 
+observedXdyad <- as.data.frame(observedXdyad)   
+observedXdyad$actor <- as.character(observedXdyad$actor)
+observedXdyad$subject <- as.character(observedXdyad$subject)
+```
+
+
+## Check observed data 
+Need to make sure that all birds in the group are included in each network (fill no interactions with zeros)
+
+```{r}
+
+# list of all dyads
+head(dyad.list)
+str(dyad.list)
+
+# observed aggression by dyad by behavior
+head(observedXdyad)
+str(observedXdyad)
+
+#subset(observedXdyad, actor==subject) #check that we don't have any self-loops
+
+# merge data with full dyad list in case any didn't interact
+observedXdyad.alldyads <- merge(observedXdyad, dyad.list, 
+                           by=c("actor", "subject"), 
+                           all.y=TRUE)
+head(observedXdyad.alldyads)
+str(observedXdyad.alldyads) #should have 420 dyads -> length(dyad.list$dyadID)
+
+# convert NA to 0's
+observedXdyad.alldyads[is.na(observedXdyad.alldyads)] <- 0
+
+#check
+head(observedXdyad.alldyads)
+length(observedXdyad.alldyads$dyadID) # with 21 birds, we should have 420 dyads total
+
+
+# cast into square matrix with actor vertically in first column, all subjects horizontally in first row
+OBS.crd.mx <- dcast(observedXdyad.alldyads, actor~subject, value.var="observed.crowd")
+
+# check that actors and subjects are correct
+subset(observedXdyad.alldyads, actor=="BBB" & subject=="GGG")
+subset(observedXdyad.alldyads, actor=="GGG" & subject=="BBB")
+OBS.crd.mx[1,] #BBB crowds GGG
+OBS.crd.mx[11,] # GGG crowds BBB
+```
+
+
+#### OBSERVED DATA summary
+Summary of all measures for the observed crowds, displacements, and pooled data (totalCD)
+
+initial check:  
+  - Do the same or different dyads crowd and displace?
+  - data sparsity
+  - correlation
+  
+step 1 and step 3:
+  - individual measures
+  - network measures
+  - dominance hierarchy measures
+  - aggression strategy
+
+
+
+```{r}
+start.time <- Sys.time()
+
+#### initial check: Summarize basic info
+  
+##  both dyads perform both behaviors? ----
+  head(observedXdyad)
+  length(observedXdyad$actor)
+
+
+unique.crowds <- observedXdyad %>%
+  filter(observed.crowd>0, observed.displace==0) # unique dyads that crowd
+#View(unique.crowds)
+length(unique.crowds$observed.crowd)
+
+unique.displace <- observedXdyad %>%
+  filter(observed.crowd==0, observed.displace>0) # unique dyads that displace
+#View(unique.displace)
+length(unique.displace$observed.displace)
+
+dyads.CD <- observedXdyad %>%
+  filter(observed.crowd>0, observed.displace>0) # dyads that perform both
+#View(dyads.CD)
+length(dyads.CD$actor)
+
+head(observedXdyad.alldyads)
+null.dyads <-  observedXdyad.alldyads %>%
+  filter(observed.totalCD==0) # dyads that did not interact
+#View(null.dyads)
+length(null.dyads$actor)
+
+# check 
+n.dyads.CD <- length(unique.crowds$observed.crowd) + length(unique.displace$observed.displace) + length(dyads.CD$actor)
+n.null.dyads<-length(null.dyads$actor)
+n.dyads.CD+n.null.dyads # have to be the same
+length(observedXdyad.alldyads$actor)
+
+# combine
+interaction <- c("crowd", "displace", "both", "none", "total")
+n.dyads <- c(length(unique.crowds$observed.crowd), length(unique.displace$observed.displace),  length(dyads.CD$actor), length(null.dyads$actor), length(observedXdyad.alldyads$actor))
+dyads.interacting<-data.frame(interaction, n.dyads)
+
+ 
+## equal observations? ----
+  basic.summary <- observedXdyad %>%
+    summarize(ave.crowds = mean(observed.crowd), sd.crowds=sd(observed.crowd), 
+              min.crowds=min(observed.crowd), max.crowds=max(observed.crowd),
+              ave.displace = mean(observed.displace), sd.displace= 
+              sd(observed.displace), min.displace=min(observed.displace), 
+              max.displace=max(observed.displace), 
+              ave.totalCD=mean(observed.totalCD), sd.totalCD=sd(observed.totalCD),
+              min.total=min(observed.totalCD), max.total=max(observed.totalCD))
+
+  n.Obcrowd <- sum(observedXdyad.alldyads$observed.crowd)
+  n.Obdisplace <- sum(observedXdyad.alldyads$observed.displace)
+  n.totalCD <- sum(observedXdyad.alldyads$observed.displace+ observedXdyad.alldyads$observed.crowd)
+  
+  prop.Obdisplace <- n.Obdisplace/(n.Obdisplace+n.Obcrowd)
+  prop.Obcrowd <- n.Obcrowd/(n.Obdisplace+n.Obcrowd)
+
+  obsdyads.crowd <- subset(observedXdyad.alldyads, observed.crowd>0)
+  obsdyads.displace <- subset(observedXdyad.alldyads, observed.displace>0)
+
+  n.Obcrowd.dyads <- length(obsdyads.crowd$actor)
+  n.Obdisplace.dyads <- length(obsdyads.displace$actor)
+
+  Obcrowd.density <- n.Obcrowd.dyads/length(dyad.list$dyadID)
+  Obdisplace.density <- n.Obdisplace.dyads/length(dyad.list$dyadID)
+  ObtotalCD.density <- (n.Obcrowd.dyads + n.Obdisplace.dyads)/length(dyad.list$dyadID)
+  
+ ## correlation ----
+  
+  ## pearson or spearman correlation (null dyads excluded)
+# normal distribution?
+hist(observedXdyad$observed.crowd)
+hist(observedXdyad$observed.displace)
+# linear relationship?
+plot(observedXdyad$observed.crowd,observedXdyad$observed.displace) 
+
+obs.cor <- cor(observedXdyad$observed.crowd, observedXdyad$observed.displace, 
+               method = "spearman")
+
+cor.test(observedXdyad$observed.crowd, 
+         observedXdyad$observed.displace, 
+         method = "spearman",
+         exact = FALSE)
+
+## correlation matrix  
+# CROWD matrix
+  obs.crowd.mx <- reshape2::dcast(observedXdyad.alldyads, actor~subject, value.var="observed.crowd") #head(ref.crowd.mx)
+  obs.crowd.mx[is.na(obs.crowd.mx)] <- 0
+  obs.crowd.mx <- matrix.please(obs.crowd.mx)
+  
+  # DISPLACEMENT matrix
+  
+  obs.disp.mx <- reshape2::dcast(observedXdyad.alldyads, actor~subject, value.var="observed.displace") #head(ref.disp.mx)
+  obs.disp.mx[is.na(obs.disp.mx)] <- 0
+  obs.disp.mx <- matrix.please(obs.disp.mx)
+  
+  # Mantel test
+  #mantel.test(obs.crowd.mx, obs.disp.mx) # ape package
+  obs.cor.result <- mantel(obs.crowd.mx, obs.disp.mx, method = "spearman") # vegan package
+  obs.cor.matrix <- obs.cor.result$statistic
+
+   # Pool basic summaries
+  Obcd.basic <- cbind.data.frame(obs.cor, obs.cor.matrix,
+                                n.Obcrowd, n.Obdisplace,
+                                prop.Obcrowd, prop.Obdisplace, 
+                                n.Obcrowd.dyads, n.Obdisplace.dyads,
+                                Obcrowd.density, Obdisplace.density, 
+                                n.totalCD,ObtotalCD.density
+                                )
+  
+  ## START NETWORK ANALYSES ----
+  
+  ###### separate analyses by type (crowd vs displace)
+  
+  ### CROWD
+  obs.crowd.mx <- reshape2::dcast(observedXdyad.alldyads, actor~subject, value.var="observed.crowd") #head(ref.crowd.mx)
+  obs.crowd.mx[is.na(obs.crowd.mx)] <- 0
+  obs.crowd.mx <- matrix.please(obs.crowd.mx)
+  
+  # network
+   graph.obs.crowd <- graph_from_adjacency_matrix(obs.crowd.mx, "directed", weighted=T, diag=F)
+
+  # individual-based metrics
+   #out-degree
+  Obcrowd.degree <- igraph::degree(graph.obs.crowd, mode = c("out"))
+  
+  # out-strength
+  Obcrowd.strength <- strength(graph.obs.crowd, mode = c("out"), weights = E(graph.obs.crowd)$weight)
+  
+  # betweenness centrality
+  Obcrowd.between <- igraph::betweenness(graph.obs.crowd, directed = TRUE,
+                                         weights = E(graph.obs.crowd)$weight)
+  
+  
+  # eigenvector centrality
+  Obcrowd.eigen <- eigen_centrality(graph.obs.crowd, directed = TRUE, weights = E(graph.obs.crowd)$weight)
+  Obcrowd.ec <- Obcrowd.eigen$vector
+  Obcrowd.ec.value <- Obcrowd.eigen$value
+  
+# network-based metrics  
+  # average path length
+  Obcrowd.apl <- mean_distance(graph.obs.crowd) # average.path.length(graph.obs.crowd) 
+  
+  # efficiency
+  Obcrowd.ei <- effective_information(graph.obs.crowd, effectiveness = FALSE)
+  Obcrowd.eff <- Obcrowd.ei/log2(length(bird.list))
+  
+  #Find proportion unknown relationships, a measure of sparseness
+  Obcrowd.prunk <- EloRating::prunk(obs.crowd.mx)
+  Obcrowd.prunk.pu <- as.numeric(Obcrowd.prunk[1])
+  Obcrowd.prunk.dyads <- as.numeric(Obcrowd.prunk[2]) 
+  
+  #Find linearity
+  Oblin.crowd<- EloRating::h.index(obs.crowd.mx, loops = 1000)
+  Obcrowd.linearity <- Oblin.crowd[3,2]
+
+  #Find steepness
+  Obcrowd.steepness <- steepness::getStp(obs.crowd.mx, method="Dij")
+  
+  #Triangle transitivity
+  Obcrowd.transi <- EloRating::transitivity(obs.crowd.mx, runs = 1000)
+  Obcrowd.transi.Pt <- Obcrowd.transi[1]  # proportion of transitive triads
+  Obcrowd.transi.ttri <- Obcrowd.transi[2]  # triangle transitivity
+  
+# aggression strategy  
+  # Compute focus & position
+  Obcrowd.focus <- dom_focus(obs.crowd.mx)
+  Obcrowd.position <- dom_position(obs.crowd.mx)
+  Obcrowd.fp <- cbind.data.frame(Obcrowd.focus, Obcrowd.position)
+  colnames(Obcrowd.fp) <- c("focus", "position")
+  
+  #Compute blur models
+  Obcrowd.blur <- dom_make_blur_data(obs.crowd.mx)
+  
+  #Find strategy
+  strategy.Obcrowd <- dom_categorize_strategy(data=Obcrowd.fp, blur_data=Obcrowd.blur)
+  
+  
+  ### POOL crowd hierarchy
+  Obcrowd.hier <- cbind.data.frame(Obcrowd.ec.value,
+                                  Obcrowd.apl, 
+                                  Obcrowd.ei, Obcrowd.eff, 
+                                  Obcrowd.linearity, 
+                                  Obcrowd.steepness, 
+                                  Obcrowd.prunk.pu, Obcrowd.prunk.dyads,
+                                  Obcrowd.transi.Pt, Obcrowd.transi.ttri,
+                                  Obcrowd.focus, Obcrowd.position,
+                                  strategy.Obcrowd
+                                  )
+  
+  ### DISPLACEMENT
+  
+  obs.disp.mx <- reshape2::dcast(observedXdyad.alldyads, actor~subject, value.var="observed.displace") #head(ref.disp.mx)
+  obs.disp.mx[is.na(obs.disp.mx)] <- 0
+  obs.disp.mx <- matrix.please(obs.disp.mx)
+  
+  graph.obs.displace <- graph_from_adjacency_matrix(obs.disp.mx, "directed", weighted=T, diag=F)
+  #plot(graph.obs.displace)
+
+# individual-based      
+  #out-degree
+  Obdisp.degree <- igraph::degree(graph.obs.displace, mode = c("out"))
+
+  # out- strength
+  Obdisp.strength <- strength(graph.obs.displace, mode = c("out"), weights = E(graph.obs.displace)$weight)
+
+   # betweenness centrality
+   Obdisp.between <- igraph::betweenness(graph.obs.displace, directed = TRUE,
+                                    weights = E(graph.obs.displace)$weight) 
+  
+  # eigenvector centrality
+  Obdisp.eigen <- eigen_centrality(graph.obs.displace, directed = TRUE, weights = E(graph.obs.displace)$weight)
+  Obdisp.ec <- Obdisp.eigen$vector
+  Obdisp.ec.value <- Obdisp.eigen$value
+   
+# network-based     
+  # average path length
+  Obdisp.apl <- average.path.length(graph.obs.displace) # mean_distance(graph.obs.displace)
+  
+  # efficiency
+  Obdisp.ei <- effective_information(graph.obs.displace, effectiveness = FALSE)
+  Obdisp.eff <- Obdisp.ei/log2(length(bird.list))
+  
+  #Find proportion unknown relationships, a measure of sparseness
+  Obdisp.prunk <- EloRating::prunk(obs.disp.mx)
+  Obdisp.prunk.pu <- as.numeric(Obdisp.prunk[1])
+  Obdisp.prunk.dyads <- as.numeric(Obdisp.prunk[2])
+  
+# dominance   
+  #Find linearity
+  Oblin.disp<- EloRating::h.index(obs.disp.mx, loops = 1000)
+  Obdisp.linearity <- Oblin.disp[3,2]
+
+  #Find steepness
+  Obdisp.steepness <- steepness::getStp(obs.disp.mx, method="Dij")
+  
+  #Triangle transitivity
+  Obdisp.transi <- EloRating::transitivity(obs.disp.mx, runs = 1000)
+  Obdisp.transi.Pt <- Obdisp.transi[1]  
+  Obdisp.transi.ttri <- Obdisp.transi[2]  
+
+# aggression strategy    
+  # Compute focus & position
+  Obdisp.focus <- dom_focus(obs.disp.mx)
+  Obdisp.position <- dom_position(obs.disp.mx)
+  Obdisp.fp <- cbind.data.frame(Obdisp.focus, Obdisp.position)
+  colnames(Obdisp.fp) <- c("focus", "position")
+  
+  #Compute blur models
+  Obdisp.blur <- dom_make_blur_data(obs.disp.mx)
+  
+  #Find strategy
+  strategy.Obdisp <- dom_categorize_strategy(data=Obdisp.fp, blur_data=Obdisp.blur)
+  
+  
+  ### POOL disp hierarchy
+  Obdisp.hier <- cbind.data.frame(
+                                  Obdisp.ec.value,
+                                  Obdisp.apl,  
+                                  Obdisp.ei, Obdisp.eff,
+                                  Obdisp.linearity, 
+                                  Obdisp.steepness, 
+                                  Obdisp.prunk.pu, Obdisp.prunk.dyads,
+                                  Obdisp.transi.Pt, Obdisp.transi.ttri,
+                                  Obdisp.focus, Obdisp.position,
+                                  strategy.Obdisp
+                                  )
+
+  
+  
+  ### TOTAL (totalCD, all crowds + all displaces)
+  
+  obs.totalCD.mx <- reshape2::dcast(observedXdyad.alldyads, actor~subject, value.var="observed.totalCD") #head(ref.totalCD.mx)
+  obs.totalCD.mx[is.na(obs.totalCD.mx)] <- 0
+  obs.totalCD.mx <- matrix.please(obs.totalCD.mx)
+  
+  graph.obs.totalCD <- graph_from_adjacency_matrix(obs.totalCD.mx, "directed", weighted=T, diag=F)
+  #plot(graph.obs.totalCD)
+  
+# individual-based metrics   
+  #out-degree
+  ObtotalCD.degree <- igraph::degree(graph.obs.totalCD, mode = c("out")) 
+   
+  # out- strength
+  ObtotalCD.strength <- strength(graph.obs.totalCD, mode = c("out"), weights = E(graph.obs.totalCD)$weight)
+
+  # betweenness centrality
+  ObtotalCD.between <- igraph::betweenness(graph.obs.totalCD, directed = TRUE,
+                                    weights = E(graph.obs.totalCD)$weight) 
+  
+  # eigenvector centrality
+  ObtotalCD.eigen <- eigen_centrality(graph.obs.totalCD, directed = TRUE, weights = E(graph.obs.totalCD)$weight)
+  ObtotalCD.ec <- ObtotalCD.eigen$vector
+  ObtotalCD.ec.value <- ObtotalCD.eigen$value
+   
+# group-based metrics    
+  # average path length
+  ObtotalCD.apl <- average.path.length(graph.obs.totalCD) # mean_distance(graph.obs.totalCD)
+  
+  # efficiency
+  ObtotalCD.ei <- effective_information(graph.obs.totalCD, effectiveness = FALSE)
+  ObtotalCD.eff <- ObtotalCD.ei/log2(length(bird.list))  
+ 
+  #Find proportion unknown relationships, a measure of sparseness
+  ObtotalCD.prunk <- EloRating::prunk(obs.totalCD.mx)
+  ObtotalCD.prunk.pu <- as.numeric(ObtotalCD.prunk[1])
+  ObtotalCD.prunk.dyads <- as.numeric(ObtotalCD.prunk[2])
+  
+# dominance  
+  #Find linearity
+  Oblin.totalCD<- EloRating::h.index(obs.totalCD.mx, loops = 1000)
+  ObtotalCD.linearity <- Oblin.totalCD[3,2]
+
+  #Find steepness
+  ObtotalCD.steepness <- steepness::getStp(obs.totalCD.mx, method="Dij")
+  
+  #Triangle transitivity
+  ObtotalCD.transi <- EloRating::transitivity(obs.totalCD.mx, runs = 1000)
+  ObtotalCD.transi.Pt <- ObtotalCD.transi[1]  # proportion of transitive triads
+  ObtotalCD.transi.ttri <- ObtotalCD.transi[2]  # triangle transitivity
+
+# aggression strategy    
+  # Compute focus & position
+  ObtotalCD.focus <- dom_focus(obs.totalCD.mx)
+  ObtotalCD.position <- dom_position(obs.totalCD.mx)
+  ObtotalCD.fp <- cbind.data.frame(ObtotalCD.focus, ObtotalCD.position)
+  colnames(ObtotalCD.fp) <- c("focus", "position")
+  
+  #Compute blur models
+  ObtotalCD.blur <- dom_make_blur_data(obs.totalCD.mx)
+  
+  #Find strategy
+  Obstrategy.totalCD <- dom_categorize_strategy(data=ObtotalCD.fp, blur_data=ObtotalCD.blur)
+  
+  
+  ### POOL totalCD hierarchy
+  ObtotalCD.hier <- cbind.data.frame(
+                                  ObtotalCD.ec.value,
+                                  ObtotalCD.apl,
+                                  ObtotalCD.ei, ObtotalCD.eff,
+                                  ObtotalCD.linearity, 
+                                  ObtotalCD.steepness, 
+                                  ObtotalCD.prunk.pu, ObtotalCD.prunk.dyads,
+                                  ObtotalCD.transi.Pt, ObtotalCD.transi.ttri,
+                                  ObtotalCD.focus, ObtotalCD.position,
+                                  Obstrategy.totalCD
+                                  )
+  
+  
+  ## correlation individual-based metric
+  
+  # observed correlation out-strength
+#hist(Obcrowd.strength) # normal distribution?
+#hist(observed$Obdisp.strength)
+plot(Obcrowd.strength,Obdisp.strength)  # linear relationship?
+
+cor.test(observed.ID$Obcrowd.strength, 
+         observed.ID$Obdisp.strength, 
+         method = "spearman",
+         exact = FALSE)
+  obs.cor.strength <- cor(Obcrowd.strength, Obdisp.strength,  
+               method = "spearman")
+  
+  ## observed correlation betweenness
+#hist(observed$Obcrowd.between) # normal distribution?
+#hist(observed$Obdisp.between)
+plot(Obcrowd.between,Obdisp.between)  # linear relationship?
+
+cor.test(observed.ID$Obcrowd.between, 
+         observed.ID$Obdisp.between, 
+         method = "spearman",
+         exact = FALSE)
+
+  obs.cor.between <- cor(Obcrowd.between, Obdisp.between,  
+               method = "spearman")
+  
+  # observed correlation eigenvector
+#hist(observed$Obcrowd.ec) # normal distribution?
+#hist(observed$Obdisp.ec) # linear relationship?
+plot(Obcrowd.ec,Obdisp.ec) 
+
+cor.test(observed.ID$Obdisp.ec, 
+         observed.ID$Obcrowd.ec, 
+         method = "spearman",
+         exact = FALSE)  
+
+obs.cor.eigen <- cor(Obcrowd.ec, Obdisp.ec,  
+               method = "spearman")
+  
+# POOL ALL DATA
+observed.summary <- cbind.data.frame(Obcd.basic, Obcrowd.hier, Obdisp.hier, ObtotalCD.hier,obs.cor.strength, obs.cor.between, obs.cor.eigen)
+
+observed.summary.individual<-cbind.data.frame(Obcrowd.degree, 
+                                              Obcrowd.strength,  
+                                              Obcrowd.between, 
+                                              Obcrowd.ec, 
+                                              Obdisp.degree, 
+                                              Obdisp.strength, 
+                                              Obdisp.between,
+                                              Obdisp.ec,
+                                              ObtotalCD.degree,
+                                              ObtotalCD.strength,
+                                              ObtotalCD.between,
+                                              ObtotalCD.ec)
+
+# Check time
+end.time <- Sys.time()
+
+#Time to run:
+end.time - start.time
+
+
+#check the data
+t(observed.summary)
+t(observed.summary.individual)
+
+# Write data
+write.csv(observed.summary, file = "ANALYZE-SUMM.observed.csv")
+write.csv(observed.summary.individual, file = "ANALYZE-SUMM.observed.individual.csv")
+```
