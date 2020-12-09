@@ -1,0 +1,2557 @@
+---
+title: "R script decision framework"
+author: "Annemarie van der Marel"
+date: "31/10/2020"
+output: html_document
+---
+
+# Load packages
+```{r, include=FALSE}
+library(dplyr)
+library(tidyr)
+library(reshape2)
+library(stringr)
+library(purrr)
+library(EloRating)
+library(domstruc) #install_github("danm0nster/domstruc")
+library(ape)  # mantel test
+library(vegan) # mantel test
+library(einet) # effectiveness
+library(igraph)
+
+library(beanplot)
+library(scales)
+library(ggplot2)
+library(dplyr)
+library(ggpubr)
+library(tidyr)
+```
+
+
+# import data
+
+```{r}
+raw.data <- read.csv("datafile.csv") 
+head(raw.data)
+glimpse(raw.data)
+```
+
+
+
+# Helper functions & data
+```{r}
+
+#make matrix function (from dataframe, 1st col with row names)
+matrix.please<-function(x) {
+  m<-as.matrix(x[,-1])
+  rownames(m)<-x[,1]
+  m
+}
+
+#list of all valid color combinations
+bird.list <- c("BBB","BBG","BBR","BGB","BGG","BRB","BRR","GBB","GBG","GGB","GGG","GGR","GRG","GRR","RBB","RBG","RBR","RGG","RGR","RRG","RRR")
+length(bird.list)
+
+# list of all possible dyads
+dyad.list <- expand.grid(bird.list, bird.list) #head(dyad.list)
+names(dyad.list) <- c("actor", "subject")
+dyad.list <- subset(dyad.list, actor!=subject)
+dyad.list$dyadID <- paste(dyad.list$actor, dyad.list$subject, sep="-")
+
+# list of days with observations
+obsday.list <- as.character(unique(allbehavedata$date)) #only days with observations
+obsday.list.wday <- as.data.frame(obsday.list)
+colnames(obsday.list.wday) <- "date"
+obsday.list.wday$nday <- seq(1:length(obsday.list.wday$date))
+
+```
+
+
+# Subset behaviors
+Filter to select the two behaviors of interest
+
+```{r}
+subdata <- subset(raw.data, behavior=="behvaior1" | behavior=="behavior2")
+str(subdata)
+length(subdata$sessionKEY)
+
+# summarize
+subdata.summ <- subdata %>% group_by(period, behavior) %>%
+  summarize(n())
+
+# from long to wide format
+subdata.wide <- subdata %>% pivot_wider(names_from = "behavior", 
+                                              values_from = "n",
+                                              values_fill = list(n = 0))
+head(subdata.wide)
+```
+
+
+
+## filter periods
+If necessary to select only certain periods. 
+For example, we used:
+1. 3 days of fitness period for exploratory analysis (per = train)
+2. 6 days of nonsocial period (last 3 days as analyze analysis("nonsocial" period data (Mar 22-29) first 3, last 3 days and all 6; per = per0)
+3. 3 days of social period after removal of 2 birds (per = per1)
+```{r}
+# select fitness period as exploratory analysis
+head(obs.day.KEY)
+fitness <- subset(obs.day.KEY, period=="pre") %>%
+  select(date, period)
+fitness.behaveXday<-filter(subdata.wide, per=="train")
+str(fitness.behaveXday)
+
+
+# Now, pull out only the "nonsocial" period data (Mar 22-29) first 3, last 3 days and all 6
+head(obs.day.KEY)
+period0 <- subset(obs.day.KEY, period=="per0") %>%
+  mutate(days="") 
+period0$nday <- seq(1:length(period0$date))
+
+period0$days[period0$nday %in% 1:3]<-"first"
+period0$days[period0$nday %in% 4:6]<-"last"
+
+per0<-select(period0, date, period, days)
+
+# add "period" and "days" to dataframe, so we can summarize all at once 
+# for summary see "Basic group summary" script
+per0.behaveXday<-right_join(subdata.wide, per0, by="date")
+head(per0.behaveXday)
+```
+
+
+
+#### get data ready 
+Give dataframe and behvaiors general names, so we don't have to change all the code all the time
+
+Here we use data from last 3 days of the nonsocial perturbation period
+
+```{r}
+# filter period
+observed <- per0.behaveXday %>% filter(days=='last') %>% ungroup()
+
+# set behaviors
+observed$behavior1<-observed$allop
+observed$behavior2<-observed$s2s
+
+head(observed)
+str(observed)
+
+# check 
+unique(observed$actor)
+unique(observed$subject)
+unique(observed$date)
+
+sum(observed$behavior1)
+sum(observed$behavior2)
+
+```
+
+
+
+#### OBSERVED DATA summary
+Summary of all measures for the observed nn, s2s, allop and pooled data 
+
+behavior1 = allop
+behavior2 = s2s
+
+step 1 (initial check):  
+  - Do the same or different dyads perform the behaviors?
+  - data sparsity
+  - correlation
+
+step 2 and step 3:
+  - individual measures
+  - network measures
+  - dominance hierarchy measures
+  - aggression strategy
+
+First, see whether both behaviors are similar (perhaps mainly behaviors that occur between preferred social partners?)
+
+```{r}
+start.time <- Sys.time()
+
+# Summarize data: Find total events per dyad (pool across days)
+observedXdyad <- observed
+observedXdyad <- observedXdyad %>% 
+                  dplyr::group_by(actor, subject) %>% 
+                  dplyr::summarise(observed.behavior1=sum(behavior1),
+                          observed.behavior2=sum(behavior2),
+                          observed.total=(observed.behavior1 + observed.behavior2)) 
+observedXdyad <- as.data.frame(observedXdyad)   
+observedXdyad$actor <- as.character(observedXdyad$actor)
+observedXdyad$subject <- as.character(observedXdyad$subject)
+
+
+
+## Check observed data : Need to make sure that all birds in the group are included in each network (fill no interactions with zeros)
+
+# list of all dyads
+head(dyad.list)
+str(dyad.list)
+
+# observed aggression by dyad by behavior
+head(observedXdyad)
+str(observedXdyad)
+
+#subset(observedXdyad, actor==subject) #check that we don't have any self-loops
+
+# merge data with full dyad list in case any didn't interact
+observedXdyad.alldyads <- merge(observedXdyad, dyad.list, 
+                           by=c("actor", "subject"), 
+                           all.y=TRUE)
+head(observedXdyad.alldyads)
+str(observedXdyad.alldyads) #should have 420 dyads -> length(dyad.list$dyadID)
+
+# convert NA to 0's
+observedXdyad.alldyads[is.na(observedXdyad.alldyads)] <- 0
+
+#check
+head(observedXdyad.alldyads)
+length(observedXdyad.alldyads$dyadID) # with 21 birds, we should have 420 dyads total
+
+
+# cast into square matrix with actor vertically in first column, all subjects horizontally in first row
+OBS.behavior1.mx <- dcast(observedXdyad.alldyads, actor~subject, value.var="observed.behavior1")
+
+# check that actors and subjects are correct
+subset(observedXdyad.alldyads, actor=="BBB" & subject=="GGG")
+subset(observedXdyad.alldyads, actor=="GGG" & subject=="BBB")
+OBS.behavior1.mx[1,] #BBB behavior1s GGG
+OBS.behavior1.mx[11,] # GGG behavior1s BBB
+
+
+
+#### initial check: Summarize basic info
+  
+
+##  both dyads perform both behaviors? ----
+  head(observedXdyad)
+  length(observedXdyad$actor)
+
+
+unique.behavior1 <- observedXdyad %>%
+  filter(observed.behavior1>0, observed.behavior2==0) 
+
+unique.behavior2 <- observedXdyad %>%
+  filter(observed.behavior1==0, observed.behavior2>0) 
+
+#unique.behavior3 <- observedXdyad %>%
+#  filter(observed.behavior1==0, observed.behavior2==0, observed.behavior3>0) 
+
+dyads<- observedXdyad %>%
+  filter(observed.behavior1>0, observed.behavior2>0) 
+length(dyads$actor)
+
+head(observedXdyad.alldyads)
+null.dyads <-  observedXdyad.alldyads %>%
+  filter(observed.total==0) # dyads that did not interact
+#View(null.dyads)
+length(null.dyads$actor)
+
+
+# combine
+interaction <- c("behavior1", "behavior2", "both", "none", "total")
+n.dyads <- c(length(unique.behavior1$observed.behavior1), length(unique.behavior2$observed.behavior2),  length(dyads$actor), length(null.dyads$actor), length(observedXdyad.alldyads$actor))
+dyads.interacting<-data.frame(interaction, n.dyads)
+
+ 
+## equal observations? ----
+  basic.summary <- observedXdyad %>%
+    summarize(ave.behavior1= mean(observed.behavior1), 
+              sd.behavior1=sd(observed.behavior1), 
+              min.behavior1=min(observed.behavior1), 
+              max.behavior1=max(observed.behavior1),
+              ave.behavior2 = mean(observed.behavior2), sd.behavior2= 
+              sd(observed.behavior2), min.behavior2=min(observed.behavior2),
+              max.behavior2=max(observed.behavior2), 
+              #ave.behavior3 = mean(observed.behavior3), 
+              #sd.behavior3=sd(observed.behavior3), 
+              #min.behavior3=min(observed.behavior3), 
+              #max.behavior3=max(observed.behavior3),
+              ave.total=mean(observed.total), sd.total=sd(observed.total),
+              min.total=min(observed.total), max.total=max(observed.total))
+
+  n.Obbehavior1 <- sum(observedXdyad.alldyads$observed.behavior1)
+  n.Obbehavior2 <- sum(observedXdyad.alldyads$observed.behavior2)
+ # n.Obbehavior3 <- sum(observedXdyad.alldyads$observed.behavior3)
+  n.total <- sum(observedXdyad.alldyads$observed.behavior1 + 
+                   observedXdyad.alldyads$observed.behavior2)
+  
+  prop.Obbehavior1 <- n.Obbehavior1/(n.total)
+  prop.Obbehavior2<- n.Obbehavior2/(n.total)
+ # prop.Obbehavior3<- n.Obbehavior3/(n.total)
+
+  obsdyads.behavior1 <- subset(observedXdyad.alldyads, observed.behavior1>0)
+  obsdyads.behavior2 <- subset(observedXdyad.alldyads, observed.behavior2>0)
+ # obsdyads.behavior3 <- subset(observedXdyad.alldyads, observed.behavior3>0)
+
+  n.Obbehavior1.dyads <- length(obsdyads.behavior1$actor)
+  n.Obbehavior2.dyads <- length(obsdyads.behavior2$actor)
+
+  Obbehavior1.density <- n.Obbehavior1.dyads/length(dyad.list$dyadID)
+  Obbehavior2.density <- n.Obbehavior2.dyads/length(dyad.list$dyadID)
+  Obtotal.density <- (n.Obbehavior1.dyads + n.Obbehavior2.dyads)/length(dyad.list$dyadID)
+  
+ ## correlation ----
+  
+  ## pearson or spearman correlation (null dyads excluded)
+# normal distribution?
+hist(observedXdyad$observed.behavior1)
+hist(observedXdyad$observed.behavior2)
+# linear relationship?
+plot(observedXdyad$observed.behavior1,observedXdyad$observed.behavior2) 
+
+obs.cor <- cor(observedXdyad$observed.behavior1, observedXdyad$observed.behavior2, 
+               method = "spearman")
+
+cor.test(observedXdyad$observed.behavior1, 
+         observedXdyad$observed.behavior2, 
+         method = "spearman",
+         exact = FALSE)
+
+## correlation matrix  
+# behavior1 matrix
+  obs.behavior1.mx <- reshape2::dcast(observedXdyad.alldyads, actor~subject, value.var="observed.behavior1") #head(ref.behavior1.mx)
+  obs.behavior1.mx[is.na(obs.behavior1.mx)] <- 0
+  obs.behavior1.mx <- matrix.please(obs.behavior1.mx)
+  
+  # behavior2MENT matrix
+  
+  obs.behavior2.mx <- reshape2::dcast(observedXdyad.alldyads, actor~subject, value.var="observed.behavior2") #head(ref.behavior2.mx)
+  obs.behavior2.mx[is.na(obs.behavior2.mx)] <- 0
+  obs.behavior2.mx <- matrix.please(obs.behavior2.mx)
+  
+  # Mantel test
+  #mantel.test(obs.behavior1.mx, obs.behavior2.mx) # ape package
+  obs.cor.result <- mantel(obs.behavior1.mx, obs.behavior2.mx, method = "spearman") # vegan package
+  obs.cor.matrix <- obs.cor.result$statistic
+
+   # Pool basic summaries
+  Ob.basic <- cbind.data.frame(obs.cor, obs.cor.matrix,
+                                n.Obbehavior1, n.Obbehavior2,
+                                prop.Obbehavior1, prop.Obbehavior2, 
+                                n.Obbehavior1.dyads, n.Obbehavior2.dyads,
+                                Obbehavior1.density, Obbehavior2.density, 
+                                n.total,Obtotal.density
+                                )
+  
+  ## START NETWORK ANALYSES ----
+  
+  ###### separate analyses by type (behavior1 vs behavior2)
+  
+  ### behavior1
+  obs.behavior1.mx <- reshape2::dcast(observedXdyad.alldyads, actor~subject, value.var="observed.behavior1") #head(ref.behavior1.mx)
+  obs.behavior1.mx[is.na(obs.behavior1.mx)] <- 0
+  obs.behavior1.mx <- matrix.please(obs.behavior1.mx)
+  
+  # network
+   graph.obs.behavior1 <- graph_from_adjacency_matrix(obs.behavior1.mx, "directed", weighted=T, diag=F)
+
+  # individual-based metrics
+   #out-degree
+  Obbehavior1.degree <- igraph::degree(graph.obs.behavior1, mode = c("out"))
+  
+  # out-strength
+  Obbehavior1.strength <- strength(graph.obs.behavior1, mode = c("out"), weights = E(graph.obs.behavior1)$weight)
+  
+  # betweenness centrality
+  Obbehavior1.between <- igraph::betweenness(graph.obs.behavior1, directed = TRUE,
+                                         weights = E(graph.obs.behavior1)$weight)
+  
+  
+  # eigenvector centrality
+  Obbehavior1.eigen <- eigen_centrality(graph.obs.behavior1, directed = TRUE, weights = E(graph.obs.behavior1)$weight)
+  Obbehavior1.ec <- Obbehavior1.eigen$vector
+  Obbehavior1.ec.value <- Obbehavior1.eigen$value
+  
+# network-based metrics  
+  # average path length
+  Obbehavior1.apl <- mean_distance(graph.obs.behavior1) # average.path.length(graph.obs.behavior1) 
+  
+  # efficiency
+  Obbehavior1.ei <- effective_information(graph.obs.behavior1, effectiveness = FALSE)
+  Obbehavior1.eff <- Obbehavior1.ei/log2(length(bird.list))
+  
+  #Find proportion unknown relationships, a measure of sparseness
+  Obbehavior1.prunk <- EloRating::prunk(obs.behavior1.mx)
+  Obbehavior1.prunk.pu <- as.numeric(Obbehavior1.prunk[1])
+  Obbehavior1.prunk.dyads <- as.numeric(Obbehavior1.prunk[2]) 
+  
+  #Find linearity
+  Oblin.behavior1<- EloRating::h.index(obs.behavior1.mx, loops = 1000)
+  Obbehavior1.linearity <- Oblin.behavior1[3,2]
+
+  #Find steepness
+  Obbehavior1.steepness <- steepness::getStp(obs.behavior1.mx, method="Dij")
+  
+  #Triangle transitivity
+  Obbehavior1.transi <- EloRating::transitivity(obs.behavior1.mx, runs = 1000)
+  Obbehavior1.transi.Pt <- Obbehavior1.transi[1]  # proportion of transitive triads
+  Obbehavior1.transi.ttri <- Obbehavior1.transi[2]  # triangle transitivity
+  
+# aggression strategy  
+  # Compute focus & position
+  Obbehavior1.focus <- dom_focus(obs.behavior1.mx)
+  Obbehavior1.position <- dom_position(obs.behavior1.mx)
+  Obbehavior1.fp <- cbind.data.frame(Obbehavior1.focus, Obbehavior1.position)
+  colnames(Obbehavior1.fp) <- c("focus", "position")
+  
+  #Compute blur models
+  Obbehavior1.blur <- dom_make_blur_data(obs.behavior1.mx)
+  
+  #Find strategy
+  strategy.Obbehavior1 <- dom_categorize_strategy(data=Obbehavior1.fp, blur_data=Obbehavior1.blur)
+  
+  
+  ### POOL behavior1 hierarchy
+  Obbehavior1.hier <- cbind.data.frame(Obbehavior1.ec.value,
+                                  Obbehavior1.apl, 
+                                  Obbehavior1.ei, Obbehavior1.eff, 
+                                  Obbehavior1.linearity, 
+                                  Obbehavior1.steepness, 
+                                  Obbehavior1.prunk.pu, Obbehavior1.prunk.dyads,
+                                  Obbehavior1.transi.Pt, Obbehavior1.transi.ttri,
+                                  Obbehavior1.focus, Obbehavior1.position,
+                                  strategy.Obbehavior1
+                                  )
+  
+  ### behavior2
+  
+  obs.behavior2.mx <- reshape2::dcast(observedXdyad.alldyads, actor~subject, value.var="observed.behavior2") #head(ref.behavior2.mx)
+  obs.behavior2.mx[is.na(obs.behavior2.mx)] <- 0
+  obs.behavior2.mx <- matrix.please(obs.behavior2.mx)
+  
+  graph.obs.behavior2 <- graph_from_adjacency_matrix(obs.behavior2.mx, "directed", weighted=T, diag=F)
+  #plot(graph.obs.behavior2)
+
+# individual-based      
+  #out-degree
+  Obbehavior2.degree <- igraph::degree(graph.obs.behavior2, mode = c("out"))
+
+  # out- strength
+  Obbehavior2.strength <- strength(graph.obs.behavior2, mode = c("out"), weights = E(graph.obs.behavior2)$weight)
+
+   # betweenness centrality
+   Obbehavior2.between <- igraph::betweenness(graph.obs.behavior2, directed = TRUE,
+                                    weights = E(graph.obs.behavior2)$weight) 
+  
+  # eigenvector centrality
+  Obbehavior2.eigen <- eigen_centrality(graph.obs.behavior2, directed = TRUE, weights = E(graph.obs.behavior2)$weight)
+  Obbehavior2.ec <- Obbehavior2.eigen$vector
+  Obbehavior2.ec.value <- Obbehavior2.eigen$value
+   
+# network-based     
+  # average path length
+  Obbehavior2.apl <- average.path.length(graph.obs.behavior2) # mean_distance(graph.obs.behavior2)
+  
+  # efficiency
+  Obbehavior2.ei <- effective_information(graph.obs.behavior2, effectiveness = FALSE)
+  Obbehavior2.eff <- Obbehavior2.ei/log2(length(bird.list))
+  
+  #Find proportion unknown relationships, a measure of sparseness
+  Obbehavior2.prunk <- EloRating::prunk(obs.behavior2.mx)
+  Obbehavior2.prunk.pu <- as.numeric(Obbehavior2.prunk[1])
+  Obbehavior2.prunk.dyads <- as.numeric(Obbehavior2.prunk[2])
+  
+# dominance   
+  #Find linearity
+  Oblin.behavior2<- EloRating::h.index(obs.behavior2.mx, loops = 1000)
+  Obbehavior2.linearity <- Oblin.behavior2[3,2]
+
+  #Find steepness
+  Obbehavior2.steepness <- steepness::getStp(obs.behavior2.mx, method="Dij")
+  
+  #Triangle transitivity
+  Obbehavior2.transi <- EloRating::transitivity(obs.behavior2.mx, runs = 1000)
+  Obbehavior2.transi.Pt <- Obbehavior2.transi[1]  
+  Obbehavior2.transi.ttri <- Obbehavior2.transi[2]  
+
+# aggression strategy    
+  # Compute focus & position
+  Obbehavior2.focus <- dom_focus(obs.behavior2.mx)
+  Obbehavior2.position <- dom_position(obs.behavior2.mx)
+  Obbehavior2.fp <- cbind.data.frame(Obbehavior2.focus, Obbehavior2.position)
+  colnames(Obbehavior2.fp) <- c("focus", "position")
+  
+  #Compute blur models
+  Obbehavior2.blur <- dom_make_blur_data(obs.behavior2.mx)
+  
+  #Find strategy
+  strategy.Obbehavior2 <- dom_categorize_strategy(data=Obbehavior2.fp, blur_data=Obbehavior2.blur)
+  
+  
+  ### POOL behavior2 hierarchy
+  Obbehavior2.hier <- cbind.data.frame(
+                                  Obbehavior2.ec.value,
+                                  Obbehavior2.apl,  
+                                  Obbehavior2.ei, Obbehavior2.eff,
+                                  Obbehavior2.linearity, 
+                                  Obbehavior2.steepness, 
+                                  Obbehavior2.prunk.pu, Obbehavior2.prunk.dyads,
+                                  Obbehavior2.transi.Pt, Obbehavior2.transi.ttri,
+                                  Obbehavior2.focus, Obbehavior2.position,
+                                  strategy.Obbehavior2
+                                  )
+
+  
+  
+  ### TOTAL (total, all behavior1s + all behavior2s)
+  
+  obs.total.mx <- reshape2::dcast(observedXdyad.alldyads, actor~subject, value.var="observed.total") #head(ref.total.mx)
+  obs.total.mx[is.na(obs.total.mx)] <- 0
+  obs.total.mx <- matrix.please(obs.total.mx)
+  
+  graph.obs.total <- graph_from_adjacency_matrix(obs.total.mx, "directed", weighted=T, diag=F)
+  #plot(graph.obs.total)
+  
+# individual-based metrics   
+  #out-degree
+  Obtotal.degree <- igraph::degree(graph.obs.total, mode = c("out")) 
+   
+  # out- strength
+  Obtotal.strength <- strength(graph.obs.total, mode = c("out"), weights = E(graph.obs.total)$weight)
+
+  # betweenness centrality
+  Obtotal.between <- igraph::betweenness(graph.obs.total, directed = TRUE,
+                                    weights = E(graph.obs.total)$weight) 
+  
+  # eigenvector centrality
+  Obtotal.eigen <- eigen_centrality(graph.obs.total, directed = TRUE, weights = E(graph.obs.total)$weight)
+  Obtotal.ec <- Obtotal.eigen$vector
+  Obtotal.ec.value <- Obtotal.eigen$value
+   
+# group-based metrics    
+  # average path length
+  Obtotal.apl <- average.path.length(graph.obs.total) # mean_distance(graph.obs.total)
+  
+  # efficiency
+  Obtotal.ei <- effective_information(graph.obs.total, effectiveness = FALSE)
+  Obtotal.eff <- Obtotal.ei/log2(length(bird.list))  
+ 
+  #Find proportion unknown relationships, a measure of sparseness
+  Obtotal.prunk <- EloRating::prunk(obs.total.mx)
+  Obtotal.prunk.pu <- as.numeric(Obtotal.prunk[1])
+  Obtotal.prunk.dyads <- as.numeric(Obtotal.prunk[2])
+  
+# dominance  
+  #Find linearity
+  Oblin.total<- EloRating::h.index(obs.total.mx, loops = 1000)
+  Obtotal.linearity <- Oblin.total[3,2]
+
+  #Find steepness
+  Obtotal.steepness <- steepness::getStp(obs.total.mx, method="Dij")
+  
+  #Triangle transitivity
+  Obtotal.transi <- EloRating::transitivity(obs.total.mx, runs = 1000)
+  Obtotal.transi.Pt <- Obtotal.transi[1]  # proportion of transitive triads
+  Obtotal.transi.ttri <- Obtotal.transi[2]  # triangle transitivity
+
+# aggression strategy    
+  # Compute focus & position
+  Obtotal.focus <- dom_focus(obs.total.mx)
+  Obtotal.position <- dom_position(obs.total.mx)
+  Obtotal.fp <- cbind.data.frame(Obtotal.focus, Obtotal.position)
+  colnames(Obtotal.fp) <- c("focus", "position")
+  
+  #Compute blur models
+  Obtotal.blur <- dom_make_blur_data(obs.total.mx)
+  
+  #Find strategy
+  Obstrategy.total <- dom_categorize_strategy(data=Obtotal.fp, blur_data=Obtotal.blur)
+  
+  
+  ### POOL total hierarchy
+  Obtotal.hier <- cbind.data.frame(
+                                  Obtotal.ec.value,
+                                  Obtotal.apl,
+                                  Obtotal.ei, Obtotal.eff,
+                                  Obtotal.linearity, 
+                                  Obtotal.steepness, 
+                                  Obtotal.prunk.pu, Obtotal.prunk.dyads,
+                                  Obtotal.transi.Pt, Obtotal.transi.ttri,
+                                  Obtotal.focus, Obtotal.position,
+                                  Obstrategy.total
+                                  )
+  
+  
+  ## correlation individual-based metric
+  
+  # observed correlation out-strength
+#hist(Obbehavior1.strength) # normal distribution?
+#hist(observed$Obbehavior2.strength)
+plot(Obbehavior1.strength,Obbehavior2.strength)  # linear relationship?
+
+obs.cor.strength <- cor(Obbehavior1.strength, Obbehavior2.strength,  
+               method = "spearman")
+  
+  ## observed correlation betweenness
+#hist(observed$Obbehavior1.between) # normal distribution?
+#hist(observed$Obbehavior2.between)
+plot(Obbehavior1.between,Obbehavior2.between)  # linear relationship?
+
+obs.cor.between <- cor(Obbehavior1.between, Obbehavior2.between,  
+               method = "spearman")
+  
+  # observed correlation eigenvector
+#hist(observed$Obbehavior1.ec) # normal distribution?
+#hist(observed$Obbehavior2.ec) # linear relationship?
+plot(Obbehavior1.ec,Obbehavior2.ec) 
+
+obs.cor.eigen <- cor(Obbehavior1.ec, Obbehavior2.ec,  
+               method = "spearman")
+  
+# POOL ALL DATA
+observed.summary <- cbind.data.frame(Ob.basic, Obbehavior1.hier, Obbehavior2.hier, Obtotal.hier, obs.cor.strength, obs.cor.between, obs.cor.eigen)
+
+observed.summary.individual<-cbind.data.frame(Obbehavior1.degree, 
+                                              Obbehavior1.strength,  
+                                              Obbehavior1.between, 
+                                              Obbehavior1.ec, 
+                                              Obbehavior2.degree, 
+                                              Obbehavior2.strength, 
+                                              Obbehavior2.between,
+                                              Obbehavior2.ec,
+                                              Obtotal.degree,
+                                              Obtotal.strength,
+                                              Obtotal.between,
+                                              Obtotal.ec)
+
+# Check time
+end.time <- Sys.time()
+
+#Time to run:
+end.time - start.time
+
+
+#check the data
+t(observed.summary)
+t(observed.summary.individual)
+
+# Write data
+write.csv(observed.summary, file = "ANALYZE-observed.csv")
+write.csv(observed.summary.individual, file = "ANALYZE-observed.individual.csv")
+```
+
+
+# REFERENCE MODEL 1
+
+behavior1 = allop
+behavior2 = s2s
+
+## 1. Create reference model
+Test real patterns with randomized reference model: Using this reference model, we test whether randomizing the number of interactions across two behavior types results in indistinguishable structural patterns in a reference model compared to the observed data.
+
+Change: Randomly re-allocate aggression to number of behavior2ments and number of behavior1 by dyad. 
+Preserve: Keep total events (n behavior 1 + n behavior 2) by dyad the same
+
+```{r}
+
+# Produce reference model
+head(observedXdyad) 
+
+replicates <- 100
+
+#run=2
+
+#make empty dataframe to write loop results into
+ref.model <- data.frame(actor=character(),
+                       subject=character(),
+                       observed.behavior1=numeric(),
+                       observed.behavior2=numeric(),
+                       observed.total=numeric(),
+                       random.behavior1=numeric(),
+                       random.behavior2=numeric())
+
+
+for (run in 1:replicates) {
+  r.seed <- run
+  RNGkind(sample.kind="default") # code to get same random numbers across operating systems (mac vs windows)
+  set.seed(r.seed)
+  ref.data <- observedXdyad %>%
+                rowwise() %>%
+                dplyr::mutate(random.behavior2 = sample(0:observed.total, 1),
+                              random.behavior1 = observed.total-random.behavior2)
+  
+  ref.data$runID <- rep(paste0("run",str_pad(r.seed, 3, side="left", pad = "0")),    length(observedXdyad$actor)) #generates run IDs that are all 3 digits (001-100), change to 4 digit-padding if running >999
+    
+  ref.data <- as.data.frame(ref.data)
+  ref.model <- rbind.data.frame(ref.model, ref.data)
+}
+
+
+## check ref model output
+
+#check that the randomized interactions vary from the observed interactions
+ref.model$random.behavior2 == ref.model$observed.behavior2
+ref.model$random.behavior1 == ref.model$observed.behavior1
+
+#check that runs are different from each other
+head(subset(ref.model, runID=="run001"))
+head(subset(ref.model, runID=="run002"))
+head(subset(ref.model, runID=="run003"))
+head(subset(ref.model, runID=="run011"))
+
+#check that all runs ran as expected
+unique(ref.model$runID)
+length(unique(ref.model$runID))
+
+
+######
+        #loop to compare random to observed behavior2 for each runID
+uniqrun = unique(ref.model$runID)
+randvobs = data.frame(nmatches = numeric(), compar = character())
+nrowxrun = nrow(observedXdyad)
+
+for(i in uniqrun){
+        nmatches = sum(ref.model[ref.model$runID==i,]$random.behavior2==ref.model[ref.model$runID==i,]$observed.behavior2)
+        run = i
+        df = as.data.frame(nmatches, run)
+        randvobs=rbind.data.frame(randvobs,df)
+        
+        if(sum(randvobs[,1]==nrowxrun)>0){
+                                break
+                        } #if there is at least 1 occurrence of a complete match between random.behavior2 and observed.behavior2 columns, then break the loop. No more comparisons will be made. Look at end of randvobs to see which runs had a complete match
+}
+
+#check
+randvobs
+
+
+        #loop that compares random.behavior1s from each run to all other runs 
+uniqrun = unique(ref.model$runID)
+empdf = data.frame(nmatches = numeric(), compar = character())
+nrowxrun = nrow(observedXdyad)
+
+start.time = Sys.time()
+        for (i in uniqrun) {
+                
+                #make uniqrunj (a list of all runIDs that come after i)
+                n= which(!is.na(match(uniqrun,i))) 
+                uniqrunj = uniqrun[n:length(uniqrun)] 
+                uniqrunj = uniqrunj[uniqrunj!=i] 
+                        
+                for (j in uniqrunj) {
+                  
+                        nmatches = sum(ref.model[ref.model$runID==i,]$random.behavior1==ref.model[ref.model$runID==j,]$random.behavior1)    # gives the number of dyads for which the number of behavior1s in run i matches that in run j
+                        
+                        compar = paste(i,j, sep="-") #a vector to keep track of which runs are being compared
+                        df = as.data.frame(nmatches,compar)
+                        empdf=rbind.data.frame(empdf,df)
+                  
+                        if(sum(empdf[,1]==nrowxrun)>0){
+                                break
+                        } #if there is at least 1 occurrence of a complete match between random.behavior1 columns from the two runs, then break the inner loop
+                        
+                }
+        
+                val= as.numeric(substr(i,4,6))
+                if(val %% 10==0) {
+              cat(paste0("iteration: ", val, "\n"))
+                   }# see loop progress at every 10 iterations
+                               
+                if(sum(empdf[,1]==nrowxrun)>0){
+                        break
+                } #if there is at least 1 occurrence of a complete match between random.behavior1 columns from the two runs, then break the entire loop - no more comparisons will be made. Look at end of empdf to see which runs had a complete match
+                
+        } #returns empdf with number of matches for each pair of runs being compared
+tail(empdf)
+
+end.time = Sys.time()
+
+#Time to run:
+end.time - start.time
+
+#rm(i,j, df, n, uniqrunj, val)
+#i="run050"
+#j="run007"
+
+####
+
+# WRITE DATA 
+write.csv(ref.model, file = "ANALYZE-refmodel1.csv")
+
+```
+
+## 2. summarize ref model
+
+##### Loop to produce all reference model summaries (except strategies)
+Strategies take about 12 min each to run (12x100 behavior1, 12x100 behavior2 = 40 hours!)
+Loop other than strategies takes about 14 min for full dataset and 4 min for sampled dataset. 
+
+```{r}
+#run.s #list of all run names
+#head(ref.model)
+#head(COR.refmodel)
+
+run.s <- as.character(unique(ref.model$runID))
+n.total.dyads <- length(dyad.list$dyadID) #total number of dyads 
+replicates <- 100 #how many runs of the reference model were done
+
+#make empty dataframe to fill
+ref.model.summaries <- data.frame(run.code=character(), 
+                                  n.Rbehavior1=numeric(), 
+                                  n.Rbehavior2=numeric(),
+                                  prop.Rbehavior1=numeric(), 
+                                  prop.Rbehavior2=numeric(), 
+                                  n.Rbehavior1.dyads=numeric(), 
+                                  n.Rbehavior2.dyads=numeric(),
+                                  Rbehavior1.degree=numeric(),
+                                  Rbehavior1.strength=numeric(),
+                                  Rbehavior1.between=numeric(),
+                                  Rbehavior1.ec=numeric(), 
+                                  Rbehavior1.ec.value=numeric(),
+                                  Rbehavior1.apl=numeric(),
+                                  Rbehavior1.ei=numeric(),
+                                  Rbehavior1.eff=numeric(),
+                                  Rbehavior1.linearity=numeric(), 
+                                  Rbehavior1.steepness=numeric(), 
+                                  Rbehavior1.transi.Pt=numeric(), 
+                                  Rbehavior1.transi.ttri=numeric(),
+                                  Rbehavior2.degree=numeric(),
+                                  Rbehavior2.strength=numeric(),
+                                  Rbehavior2.between=numeric(),
+                                  Rbehavior2.ec=numeric(), 
+                                  Rbehavior2.ec.value=numeric(),
+                                  Rbehavior2.apl=numeric(),
+                                  Rbehavior2.ei=numeric(),
+                                  Rbehavior2.eff=numeric(),
+                                  Rbehavior2.linearity=numeric(), 
+                                  Rbehavior2.steepness=numeric(), 
+                                  Rbehavior2.transi.Pt=numeric(), 
+                                  Rbehavior2.transi.ttri=numeric(),
+                                  Rbehavior1.density=numeric(), 
+                                  Rbehavior2.density=numeric(),
+                                  Rbehavior1.prunk.pu=numeric(), 
+                                  Rbehavior1.prunk.dyads=numeric(),
+                                  Rbehavior2.prunk.pu=numeric(), 
+                                  Rbehavior2.prunk.dyads=numeric(),
+                                  R.cor.strength=numeric(),
+                                  R.cor.between=numeric(),
+                                  R.cor.eigen=numeric()
+                                  )
+#run=2
+
+#n.Obehavior1 <- sum(run.data$observed.behavior1)
+#n.Obehavior2 <- sum(run.data$observed.behavior2)
+start.time <- Sys.time()
+
+for(run in 1:replicates){
+  run.code <- run.s[run]
+  print(run.code)
+  run.data <- subset(ref.model, runID==run.code)
+  
+  #summarize basic info
+  n.Rbehavior1 <- sum(run.data$random.behavior1)
+  n.Rbehavior2 <- sum(run.data$random.behavior2)
+  prop.Rbehavior2 <- n.Rbehavior2/(n.Rbehavior2+n.Rbehavior1)
+  prop.Rbehavior1 <- n.Rbehavior1/(n.Rbehavior2+n.Rbehavior1)
+
+  dyads.behavior1 <- subset(run.data, random.behavior1>0)
+  dyads.behavior2 <- subset(run.data, random.behavior2>0)
+
+  n.Rbehavior1.dyads <- length(dyads.behavior1$actor)
+  n.Rbehavior2.dyads <- length(dyads.behavior2$actor)
+
+  Rbehavior1.density <- n.Rbehavior1.dyads/n.total.dyads
+  Rbehavior2.density <- n.Rbehavior2.dyads/n.total.dyads
+  
+  # Pool basic summaries
+  R.basic <- cbind.data.frame(run.code, 
+                                n.Rbehavior1, n.Rbehavior2,
+                                prop.Rbehavior1, prop.Rbehavior2, 
+                                n.Rbehavior1.dyads, n.Rbehavior2.dyads,
+                                Rbehavior1.density, Rbehavior2.density
+                                )
+  #str(R.basic)
+  
+  ## START NETWORK ANALYSES ----
+  ref.modelW0s <- merge(dyad.list, run.data, all.x=TRUE,
+                       by=c("actor", "subject")) #head(run.dataW0s)
+  
+  #print a check
+  check <- length(ref.modelW0s$actor)
+  print(check)
+  
+  #make runID character (not factor)
+  ref.modelW0s$runID <- as.character(ref.modelW0s$runID)
+ 
+   #fill newly-merged data with 0's where no interactions
+  ref.modelW0s[is.na(ref.modelW0s)] <- 0
+  
+###### separate analyses by type (behavior1 vs behavior2)
+  
+  ### behavior1
+  
+  ref.behavior1.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="random.behavior1") #head(ref.behavior1.mx)
+  ref.behavior1.mx[is.na(ref.behavior1.mx)] <- 0 #for linearity measure, matrix needs to be fully filled, no NAs
+  ref.behavior1.mx <- matrix.please(ref.behavior1.mx)
+  
+   graph.ref.behavior1 <- graph_from_adjacency_matrix(ref.behavior1.mx, "directed", weighted=T, diag=F)
+  
+# individual metrics   
+  #out-degree
+  Rbehavior1.degree <- igraph::degree(graph.ref.behavior1, mode = c("out"))
+  
+  # out-strength
+  #E(graph.ref.behavior1)$weight
+  Rbehavior1.strength <- strength(graph.ref.behavior1, mode = c("out"), weights = E(graph.ref.behavior1)$weight)
+  
+   # betweenness centrality
+   Rbehavior1.between <- igraph::betweenness(graph.ref.behavior1, directed = TRUE,
+                                         weights = E(graph.ref.behavior1)$weight)
+   
+  # eigenvector centrality
+  Rbehavior1.eigen <- eigen_centrality(graph.ref.behavior1, directed = TRUE, weights = E(graph.ref.behavior1)$weight)
+  Rbehavior1.ec <- Rbehavior1.eigen$vector
+  Rbehavior1.ec.value <- Rbehavior1.eigen$value
+  
+# group based metrics  
+  # average path length
+  Rbehavior1.apl <- mean_distance(graph.ref.behavior1, directed = TRUE) #average.path.length(graph.ref.behavior1) 
+  
+  # efficiency
+  Rbehavior1.ei <- effective_information(graph.ref.behavior1, effectiveness = FALSE)
+  Rbehavior1.eff <- Rbehavior1.ei/log2(length(bird.list))
+  
+  #Find proportion unknown relationships, a measure of sparseness
+  Rbehavior1.prunk <- EloRating::prunk(ref.behavior1.mx)
+  Rbehavior1.prunk.pu <- as.numeric(Rbehavior1.prunk[1])
+  Rbehavior1.prunk.dyads <- as.numeric(Rbehavior1.prunk[2])
+  
+# dominance  
+  #Find linearity
+  lin.behavior1<- EloRating::h.index(ref.behavior1.mx, loops = 1000)
+  Rbehavior1.linearity <- lin.behavior1[3,2]
+
+  #Find steepness
+  Rbehavior1.steepness <- steepness::getStp(ref.behavior1.mx, method="Dij")
+  
+  #Triangle transitivity
+  Rbehavior1.transi <- EloRating::transitivity(ref.behavior1.mx, runs = 1000)
+  Rbehavior1.transi.Pt <- Rbehavior1.transi[1]  # proportion of transitive triads
+  Rbehavior1.transi.ttri <- Rbehavior1.transi[2]  # triangle transitivity
+  
+  
+  ### POOL behavior1 hierarchy
+  Rbehavior1.hier <- cbind.data.frame(Rbehavior1.degree,
+                                  Rbehavior1.strength, 
+                                  Rbehavior1.between,
+                                  Rbehavior1.ec, Rbehavior1.ec.value,
+                                  Rbehavior1.apl,
+                                  Rbehavior1.eff,
+                                  Rbehavior1.linearity, 
+                                  Rbehavior1.steepness, 
+                                  Rbehavior1.prunk.pu, Rbehavior1.prunk.dyads,
+                                  Rbehavior1.transi.Pt, Rbehavior1.transi.ttri
+                                  )
+  
+  ### behavior2
+  
+  ref.behavior2.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="random.behavior2") #head(ref.behavior2.mx)
+  ref.behavior2.mx[is.na(ref.behavior2.mx)] <- 0
+  ref.behavior2.mx <- matrix.please(ref.behavior2.mx)
+  
+   # network
+  graph.ref.behavior2 <- graph_from_adjacency_matrix(ref.behavior2.mx, "directed", weighted=T, diag=F)
+
+# individual    
+  #out-degree
+  Rbehavior2.degree <- igraph::degree(graph.ref.behavior2, mode = c("out"))
+  
+   # strength
+   Rbehavior2.strength <- strength(graph.ref.behavior2, mode = c("out"), weights = E(graph.ref.behavior2)$weight)
+  
+   # betweenness centrality
+   Rbehavior2.between <- igraph::betweenness(graph.ref.behavior2, directed = TRUE,
+                                    weights = E(graph.ref.behavior2)$weight)
+   
+  # eigenvector centrality
+  Rbehavior2.eigen <- eigen_centrality(graph.ref.behavior2, directed = TRUE, weights = E(graph.ref.behavior2)$weight)
+  Rbehavior2.ec <- Rbehavior2.eigen$vector
+  Rbehavior2.ec.value <- Rbehavior2.eigen$value
+  
+# group  
+  # average path length
+  Rbehavior2.apl <- mean_distance(graph.ref.behavior2) #average.path.length(graph.ref.behavior2)
+  
+  # efficiency
+  Rbehavior2.ei <- effective_information(graph.ref.behavior2, effectiveness = FALSE)
+  Rbehavior2.eff <- Rbehavior2.ei/log2(length(bird.list))
+  
+  #Find proportion unknown relationships, a measure of sparseness
+  Rbehavior2.prunk <- EloRating::prunk(ref.behavior2.mx)
+  Rbehavior2.prunk.pu <- as.numeric(Rbehavior2.prunk[1])
+  Rbehavior2.prunk.dyads <- as.numeric(Rbehavior2.prunk[2])
+  
+# dominance  
+  #Find linearity
+  lin.behavior2<- EloRating::h.index(ref.behavior2.mx, loops = 1000)
+  Rbehavior2.linearity <- lin.behavior2[3,2]
+
+  #Find steepness
+  Rbehavior2.steepness <- steepness::getStp(ref.behavior2.mx, method="Dij")
+  
+  #Triangle transitivity
+  Rbehavior2.transi <- EloRating::transitivity(ref.behavior2.mx, runs = 1000)
+  Rbehavior2.transi.Pt <- Rbehavior2.transi[1]  # proportion of transitive triads
+  Rbehavior2.transi.ttri <- Rbehavior2.transi[2]  # triangle transitivity
+  
+
+  #### POOL behavior2 hierarchy
+  Rbehavior2.hier <- cbind.data.frame(
+                                  Rbehavior2.degree,
+                                  Rbehavior2.strength, 
+                                  Rbehavior2.between,
+                                  Rbehavior2.ec,Rbehavior2.ec.value,
+                                  Rbehavior2.apl,
+                                  Rbehavior2.eff,
+                                  Rbehavior2.linearity, 
+                                  Rbehavior2.steepness, 
+                                  Rbehavior2.prunk.pu, Rbehavior2.prunk.dyads,
+                                  Rbehavior2.transi.Pt, Rbehavior2.transi.ttri
+                                  )
+  
+   ### matrix correlation
+  ref1.cor.result <- mantel(ref.behavior1.mx, ref.behavior2.mx, method = "spearman") # vegan package
+  ref1.cor.matrix <- ref1.cor.result$statistic
+  
+  
+   ## correlation individual-based metric
+  R.cor.strength <- cor(Rbehavior1.strength, Rbehavior2.strength,  
+               method = "spearman")
+  R.cor.between <- cor(Rbehavior1.between, Rbehavior2.between,  
+               method = "spearman")
+  R.cor.eigen <- cor(Rbehavior1.ec, Rbehavior2.ec,  
+               method = "spearman")
+  
+  
+  # POOL ALL DATA
+  run.sums <- cbind.data.frame(R.basic, Rbehavior1.hier, Rbehavior2.hier, ref1.cor.matrix, R.cor.strength, R.cor.between, R.cor.eigen )
+  ref.model.summaries <- rbind(ref.model.summaries, run.sums)
+}
+
+end.time <- Sys.time()
+
+#Time to run:
+end.time - start.time
+
+#t(ref.model.summaries)
+head(ref.model.summaries)
+
+
+# write data
+write.csv(ref.model.summaries, "ANALYZE-summ.refmodel1.csv")
+
+```
+
+
+## 3. summarize ref model strategies (takes awhile!)
+
+```{r}
+#run.s #list of all run names
+#head(ref.model)
+
+run.s <- as.character(unique(ref.model$runID))
+n.total.dyads <- length(dyad.list$dyadID) 
+replicates <- 100 #how many runs of the reference model were done
+
+#make empty dataframe to fill
+ref.model.strategies <- data.frame(run.code=character(), 
+                                   type=character(), 
+                                   fp.Rbehavior1=numeric(), 
+                                   strategy.Rbehavior1=numeric(), 
+                                   fp.Rbehavior2=numeric(), 
+                                   strategy.Rbehavior2=numeric()
+                                  )
+
+refmodel.blurdata <- data.frame(runID=character(),
+                                type=character(),
+                                blur=numeric(),
+                                focus=numeric(),
+                                focus_ci_hi=numeric(),
+                                focus_ci_lo=numeric(),
+                                position=numeric(),
+                                position_ci_hi=numeric(),
+                                position_ci_lo=numeric()
+                                )
+#run=2
+
+#n.Obehavior1 <- sum(run.data$observed.behavior1)
+#n.Obehavior2 <- sum(run.data$observed.behavior2)
+start.time <- Sys.time()
+
+for(run in 1:replicates){
+  run.code <- run.s[run]
+  print(run.code)
+  run.data <- subset(ref.model, runID==run.code)
+
+  ref.modelW0s <- merge(dyad.list, run.data, all.x=TRUE,
+                       by=c("actor", "subject")) #head(run.dataW0s)
+  
+  #print a check
+  check <- length(ref.modelW0s$actor)
+  print(check)
+  
+  #make runID character (not factor)
+  ref.modelW0s$runID <- as.character(ref.modelW0s$runID)
+ 
+   #fill newly-merged data with 0's where no interactions
+  ref.modelW0s[is.na(ref.modelW0s)] <- 0
+  
+  ### behavior1
+  
+  ref.behavior1.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="random.behavior1") #head(ref.behavior1.mx)
+  ref.behavior1.mx[is.na(ref.behavior1.mx)] <- 0 #for linearity measure, matrix needs to be fully filled, no NAs
+  ref.behavior1.mx <- matrix.please(ref.behavior1.mx)
+  
+  #behavior1
+  # Compute focus & position
+  focus.Rbehavior1 <- dom_focus(ref.behavior1.mx)
+  position.Rbehavior1 <- dom_position(ref.behavior1.mx)
+  fp.Rbehavior1 <- cbind.data.frame(focus.Rbehavior1, position.Rbehavior1)
+  colnames(fp.Rbehavior1) <- c("focus", "position")
+  
+  #Compute blur models
+  blur.Rbehavior1 <- dom_make_blur_data(ref.behavior1.mx)
+  
+  #compile behavior1 summary
+  runID <- rep(run.code, length(blur.Rbehavior1$blur))
+  type <- rep("behavior1", length(blur.Rbehavior1$blur))
+  blur.behavior1 <- cbind.data.frame(runID, type, blur.Rbehavior1)
+  
+  #Find strategy
+  strategy.Rbehavior1 <- dom_categorize_strategy(data=fp.Rbehavior1, blur_data=blur.Rbehavior1)
+  
+  
+  ### behavior2
+  
+  ref.behavior2.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="random.behavior2") #head(ref.behavior2.mx)
+  ref.behavior2.mx[is.na(ref.behavior2.mx)] <- 0
+  ref.behavior2.mx <- matrix.please(ref.behavior2.mx)
+  
+  # behavior2MENTS
+  # Compute focus & position
+  focus.Rbehavior2 <- dom_focus(ref.behavior2.mx)
+  position.Rbehavior2 <- dom_position(ref.behavior2.mx)
+  fp.Rbehavior2 <- cbind.data.frame(focus.Rbehavior2, position.Rbehavior2)
+  colnames(fp.Rbehavior2) <- c("focus", "position")
+
+  #Compute blur models
+  blur.Rbehavior2 <- dom_make_blur_data(ref.behavior2.mx)
+
+  #compile behavior2 summary
+  runID <- rep(run.code, length(blur.Rbehavior2$blur))
+  type <- rep("behavior2", length(blur.Rbehavior2$blur))
+  blur.behavior2 <- cbind.data.frame(runID, type, blur.Rbehavior2)
+  
+  #Find strategy
+  strategy.Rbehavior2 <- dom_categorize_strategy(data=fp.Rbehavior2, blur_data=blur.Rbehavior2)
+  
+  
+  ### POOL ALL DATA
+  
+  #pool blur data
+  refmodel.blurdata <- rbind.data.frame(refmodel.blurdata, blur.behavior1, blur.behavior2)
+  
+  #pool strategy/run data
+  run.strategy.sums <- cbind.data.frame(run.code, 
+                                        focus.Rbehavior1, position.Rbehavior1,
+                                        strategy.Rbehavior1, 
+                                        focus.Rbehavior2, position.Rbehavior2, strategy.Rbehavior2
+                                        )
+  
+  ref.model.strategies <- rbind(ref.model.strategies, run.strategy.sums)
+
+  
+}
+
+end.time <- Sys.time()
+
+#Time to run:
+end.time - start.time
+
+#t(ref.model.strategies)
+head(ref.model.strategies)
+
+
+#WRITE DATA
+write.csv(ref.model.strategies, file = "ANALYZE_SUMM.refmodel1.strategies.csv")
+
+write.csv(refmodel.blurdata, file = "ANALYZE_SUMM.refmodel1.blurs.csv")
+```
+
+
+# REFERENCE MODEL 2
+
+behavior1 = allop
+behavior2 = s2s
+
+## 1. Create reference model
+
+The goal of this reference model is to assess how sparser data may affect our summary statistics. To do this we subsampled our behavior2ment event data so that the number of behavior2ments was reduced to equal the number of behavior1 (which were the rarer behavior type in our observations).
+
+There are 2 parts to this model:
+Part A: subsample common behavior to equal the rare interaction type and add observed rare behavior to this dataframe
+
+Part B: randomly re-allocate the total observed behavior1 and subsample behavior2ments back to the 2 interaction types. 
+```{r}
+## get data ready
+n.Obbehavior1 # 357 ---> rare
+n.Obbehavior2 # 538 
+
+# common behavior (behavior2) in long format (1 event at a time)
+obs.behavior2.long <- select(observed, actor, subject, behavior2) %>%
+  slice(rep(seq_len(n()), behavior2)) %>% 
+  select(-behavior2) %>%
+  mutate(behavior2.event = 1)
+sum(obs.behavior2.long$behavior2.event)
+
+# total number of behavior1
+n.obs.behavior1<-sum(observed$behavior1)  
+
+
+replicates <- 100
+
+run=2
+
+# make empty dataframe to write loop results into
+ref.model <- data.frame(runID=character(),
+                        actor=character(),
+                       subject=character(),
+                       random.behavior1=numeric(),
+                       random.behavior2=numeric()
+                       )
+ 
+##  loop
+
+for (run in 1:replicates) {
+  r.seed <- run
+  RNGkind(sample.kind="default") 
+  set.seed(r.seed)
+  
+  ### PART A: SUBSAMPLE common behavior ####
+  sample.behavior2 <- sample_n(obs.behavior2.long, size = n.obs.behavior1, replace = FALSE)
+ 
+  ## summarize behavior2 by dyad
+  # finds n behavior2 per actor by date for trimmed data
+  sample.behavior2Xday <- sample.behavior2 %>% 
+    group_by(actor, subject) %>% 
+    summarise(sample.behavior2=n(), .groups = 'drop')  %>%
+    # mutate(behavior="behavior2") %>% 
+    ungroup()
+    sample.behavior2Xday<-as.data.frame(sample.behavior2Xday)
+  
+  
+  # check whether behavior2add up to number of behavior1 per run
+  check.behavior2 <- group_by(sample.behavior2Xday) %>%
+    summarise(n.behavior2=sum(sample.behavior2), length(sample.behavior2), .group='drop')
+  head(check.behavior2)
+  
+  ### ADD OBSERVED behavior1
+  # keep only rare behavior from raw data
+  obs.behavior1<- select(observedXdyad, -observed.behavior2, -observed.total) 
+  total.obs.behavior1<-sum(obs.behavior1$behavior1) # find total number of behavior1 events
+  
+ 
+  ### COMBINE observed behavior1 and subsampled behavior2 per runID
+   runID <- rep(paste0("run",str_pad(run, 3, side="left", pad = "0")), nrow(obs.behavior1)) 
+  
+  run.data<-cbind.data.frame(runID, obs.behavior1)
+   
+  run.data <- full_join(run.data, 
+                            sample.behavior2Xday, by=c("actor", "subject")) %>%
+    select(runID, everything()) %>%
+    replace_na(list(observed.behavior1 = 0, sample.behavior2 = 0)) %>%
+    mutate(total=sample.behavior2 + observed.behavior1) %>%
+    arrange(runID)
+#head(run.data)
+#str(run.data)
+    
+  #### PART B: RE-ALLOCATE ####
+  #re-set sampling conditions (use same seed as above, using loop to set r.seed)
+  RNGkind(sample.kind="default") 
+  set.seed(r.seed)
+  
+  ref.data <-  run.data %>%
+                rowwise() %>%
+                dplyr::mutate(random.behavior2 = sample(0:total, 1),
+                              random.behavior1 = total-random.behavior2)
+  ref.data <- as.data.frame(ref.data)
+  ref.model <- rbind.data.frame(ref.model, ref.data)
+  
+  }
+
+
+## check ref model output
+
+#check that the randomized interactions vary from the observed interactions
+ref.model$random.behavior2 == ref.model$behavior2
+ref.model$random.behavior1 == ref.model$behavior1
+#check that runs are different from each other
+head(subset(ref.model, runID=="run001"))
+head(subset(ref.model, runID=="run002"))
+head(subset(ref.model, runID=="run003"))
+head(subset(ref.model, runID=="run011"))
+#check that all runs ran as expected
+unique(ref.model$runID)
+length(unique(ref.model$runID))
+
+## loop to compare random to observed behavior2ments for each runID
+uniqrun = unique(ref.model$runID)
+randvobs = data.frame(nmatches = numeric(), compar = character())
+nrowxrun = nrow(observedXdyad)
+
+for(i in uniqrun){
+        nmatches = sum(ref.model[ref.model$runID==i,]$random.behavior2==ref.model[ref.model$runID==i,]$sample.behavior2)
+        run = i
+        df = as.data.frame(nmatches, run)
+        randvobs=rbind.data.frame(randvobs,df)
+        
+        if(sum(randvobs[,1]==nrowxrun)>0){
+                                break
+                        } #if there is at least 1 occurrence of a complete match between random.behavior2 and observed.behavior2 columns, then break the loop. No more comparisons will be made. Look at end of randvobs to see which runs had a complete match
+}
+
+#check
+randvobs
+
+
+#loop that compares random.behavior1 (or sample.behavior2) from each run to all other runs 
+uniqrun = unique(ref.model$runID)
+empdf = data.frame(nmatches = numeric(), compar = character())
+nrowxrun = nrow(observedXdyad)
+
+        for (i in uniqrun) {
+                
+                #make uniqrunj (a list of all runIDs that come after i)
+                n= which(!is.na(match(uniqrun,i))) 
+                uniqrunj = uniqrun[n:length(uniqrun)] 
+                uniqrunj = uniqrunj[uniqrunj!=i] 
+                        
+                for (j in uniqrunj) {
+                  
+                        nmatches = sum(ref.model[ref.model$runID==i,]$sample.behavior2==ref.model[ref.model$runID==j,]$sample.behavior2)    # gives the number of dyads for which the number of behavior1 in run i matches that in run j
+                        
+                        compar = paste(i,j, sep="-") #a vector to keep track of which runs are being compared
+                        df = as.data.frame(nmatches,compar)
+                        empdf=rbind.data.frame(empdf,df)
+                  
+                        if(sum(empdf[,1]==nrowxrun)>0){
+                                break
+                        } #if there is at least 1 occurrence of a complete match between random.behavior1 columns from the two runs, then break the inner loop
+                        
+                }
+        
+                val= as.numeric(substr(i,4,6))
+                if(val %% 10==0) {
+              cat(paste0("iteration: ", val, "\n"))
+                   }# see loop progress at every 10 iterations
+                               
+                if(sum(empdf[,1]==nrowxrun)>0){
+                        break
+                } #if there is at least 1 occurrence of a complete match between random.behavior1 columns from the two runs, then break the entire loop - no more comparisons will be made. Look at end of empdf to see which runs had a complete match
+                
+        } #returns empdf with number of matches for each pair of runs being compared
+tail(empdf)
+
+
+
+
+## export file
+write.csv(ref.model, file = "ANALYZE_refmodel2.csv")
+
+```
+
+
+## 2. summarize ref model
+Now, we can summarize our results using reference model 2.
+
+### Loop to produce all reference model summaries (except strategies)
+
+```{r}
+
+#make empty dataframe to fill
+ref.model.summaries <- data.frame(run.code=character(), 
+                                  run.cor=numeric(), 
+                                  n.Rbehavior1=numeric(), 
+                                  n.Rbehavior2=numeric(),
+                                  prop.Rbehavior1=numeric(), 
+                                  prop.Rbehavior2=numeric(), 
+                                  n.Rbehavior1.dyads=numeric(), 
+                                  n.Rbehavior2.dyads=numeric(),
+                                  Rbehavior1.degree=numeric(),
+                                  Rbehavior1.strength=numeric(),
+                                  Rbehavior1.between=numeric(),
+                                  Rbehavior1.ec=numeric(), 
+                                  Rbehavior1.ec.value=numeric(),
+                                  Rbehavior1.apl=numeric(),
+                                  Rbehavior1.ei=numeric(),
+                                  Rbehavior1.eff=numeric(),
+                                  Rbehavior1.linearity=numeric(), 
+                                  Rbehavior1.steepness=numeric(), 
+                                  Rbehavior1.transi.Pt=numeric(), 
+                                  Rbehavior1.transi.ttri=numeric(),
+                                  Rbehavior2.degree=numeric(),
+                                  Rbehavior2.strength=numeric(),
+                                  Rbehavior2.between=numeric(),
+                                  Rbehavior2.ec=numeric(), 
+                                  Rbehavior2.ec.value=numeric(),
+                                  Rbehavior2.linearity=numeric(), 
+                                  Rbehavior2.steepness=numeric(), 
+                                  Rbehavior2.apl=numeric(),
+                                  Rbehavior2.ei=numeric(),
+                                  Rbehavior2.eff=numeric(),
+                                  Rbehavior2.transi.Pt=numeric(), 
+                                  Rbehavior2.transi.ttri=numeric(),
+                                  Rbehavior1.density=numeric(), 
+                                  Rbehavior2.density=numeric(),
+                                  Rbehavior1.prunk.pu=numeric(), 
+                                  Rbehavior1.prunk.dyads=numeric(),
+                                  Rbehavior2.prunk.pu=numeric(), 
+                                  Rbehavior2.prunk.dyads=numeric(),
+                                  R.cor.strength=numeric(),
+                                  R.cor.between=numeric(),
+                                  R.cor.eigen=numeric()
+                                  )
+
+run.s <- as.character(unique(ref.model$runID))
+n.total.dyads <- length(dyad.list$dyadID) #total number of dyads 
+
+start.time <- Sys.time()
+
+for(run in seq_along(unique(ref.model$runID))){
+  run.code <- run.s[run]
+  print(run.code)
+  run.data <- subset(ref.model, runID==run.code)
+  
+  #run.corr <- subset(COR.refmodel, runID==run.code)
+  run.cor <- cor(run.data$random.behavior2, run.data$random.behavior1, method = "spearman")
+  
+  #summarize basic info
+  n.Rbehavior1 <- sum(run.data$random.behavior1)
+  n.Rbehavior2 <- sum(run.data$random.behavior2)
+  prop.Rbehavior2 <- n.Rbehavior2/(n.Rbehavior2+n.Rbehavior1)
+  prop.Rbehavior1 <- n.Rbehavior1/(n.Rbehavior2+n.Rbehavior1)
+
+  dyads.behavior1 <- subset(run.data, random.behavior1>0)
+  dyads.behavior2 <- subset(run.data, random.behavior2>0)
+
+  n.Rbehavior1.dyads <- length(dyads.behavior1$actor)
+  n.Rbehavior2.dyads <- length(dyads.behavior2$actor)
+
+  Rbehavior1.density <- n.Rbehavior1.dyads/n.total.dyads
+  Rbehavior2.density <- n.Rbehavior2.dyads/n.total.dyads
+  
+  # Pool basic summaries
+  R.basic <- cbind.data.frame(run.code, run.cor, 
+                                n.Rbehavior1, n.Rbehavior2,
+                                prop.Rbehavior1, prop.Rbehavior2, 
+                                n.Rbehavior1.dyads, n.Rbehavior2.dyads,
+                                Rbehavior1.density, Rbehavior2.density
+                                )
+  #str(R.basic)
+  
+  ## START NETWORK ANALYSES ----
+  ref.modelW0s <- merge(dyad.list, run.data, all.x=TRUE,
+                       by=c("actor", "subject")) #head(run.dataW0s)
+  
+  #print a check
+  check <- length(ref.modelW0s$actor)
+  print(check)
+  
+  #make runID character (not factor)
+  ref.modelW0s$runID <- as.character(ref.modelW0s$runID)
+ 
+   #fill newly-merged data with 0's where no interactions
+  ref.modelW0s[is.na(ref.modelW0s)] <- 0
+  
+###### separate analyses by type (behavior1 vs behavior2)
+  
+  ### behavior1
+  
+  ref.behavior1.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="random.behavior1") #head(ref.behavior1.mx)
+  ref.behavior1.mx[is.na(ref.behavior1.mx)] <- 0 #for linearity measure, matrix needs to be fully filled, no NAs
+  ref.behavior1.mx <- matrix.please(ref.behavior1.mx)
+  
+   # network graph
+  graph.ref.behavior1 <- graph_from_adjacency_matrix(ref.behavior1.mx, "directed", weighted=T, diag=F)
+  
+#individual level
+  #out-degree
+  Rbehavior1.degree <- igraph::degree(graph.ref.behavior1, mode = c("out"))
+  
+   # strength
+   Rbehavior1.strength <- strength(graph.ref.behavior1, mode = c("out"), weights = E(graph.ref.behavior1)$weight)
+  
+   # betweenness centrality
+   Rbehavior1.between <- igraph::betweenness(graph.ref.behavior1, directed = TRUE,
+                                    weights = E(graph.ref.behavior1)$weight)
+  
+  # eigenvector centrality
+  Rbehavior1.eigen <- eigen_centrality(graph.ref.behavior1, directed = TRUE, weights = E(graph.ref.behavior1)$weight)
+  Rbehavior1.ec <- Rbehavior1.eigen$vector
+  Rbehavior1.ec.value <- Rbehavior1.eigen$value
+
+#group-level  
+  # average path length
+  Rbehavior1.apl <- mean_distance(graph.ref.behavior1) #average.path.length(graph.ref.behavior1) 
+  
+  # efficiency
+  Rbehavior1.ei <- effective_information(graph.ref.behavior1, effectiveness = FALSE)
+  Rbehavior1.eff <- Rbehavior1.ei/log2(length(bird.list))
+  
+  #Find proportion unknown relationships, a measure of sparseness
+  Rbehavior1.prunk <- EloRating::prunk(ref.behavior1.mx)
+  Rbehavior1.prunk.pu <- as.numeric(Rbehavior1.prunk[1])
+  Rbehavior1.prunk.dyads <- as.numeric(Rbehavior1.prunk[2])
+  
+# dominance  
+  #Find linearity
+  lin.behavior1<- EloRating::h.index(ref.behavior1.mx, loops = 1000)
+  Rbehavior1.linearity <- lin.behavior1[3,2]
+
+  #Find steepness
+  Rbehavior1.steepness <- steepness::getStp(ref.behavior1.mx, method="Dij")
+  
+  #Triangle transitivity
+  Rbehavior1.transi <- EloRating::transitivity(ref.behavior1.mx, runs = 1000)
+  Rbehavior1.transi.Pt <- Rbehavior1.transi[1]  # proportion of transitive triads
+  Rbehavior1.transi.ttri <- Rbehavior1.transi[2]  # triangle transitivity
+  
+  
+  ### POOL behavior1 hierarchy
+  Rbehavior1.hier <- cbind.data.frame(
+                                  Rbehavior1.degree,
+                                  Rbehavior1.strength,
+                                  Rbehavior1.between,
+                                  Rbehavior1.ec, Rbehavior1.ec.value,
+                                  Rbehavior1.apl,
+                                  Rbehavior1.ei, Rbehavior1.eff,
+                                  Rbehavior1.linearity, 
+                                  Rbehavior1.steepness, 
+                                  Rbehavior1.prunk.pu, Rbehavior1.prunk.dyads,
+                                  Rbehavior1.transi.Pt, Rbehavior1.transi.ttri
+                                  )
+  
+  ### behavior2MENT
+  
+  ref.behavior2.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="random.behavior2") #head(ref.behavior2.mx)
+  ref.behavior2.mx[is.na(ref.behavior2.mx)] <- 0
+  ref.behavior2.mx <- matrix.please(ref.behavior2.mx)
+  
+  # network
+  graph.ref.behavior2 <- graph_from_adjacency_matrix(ref.behavior2.mx, "directed", weighted=T, diag=F)
+
+# individual-based metrics    
+  #out-degree
+  Rbehavior2.degree <- igraph::degree(graph.ref.behavior2, mode = c("out"))
+  
+   # strength
+   Rbehavior2.strength <- strength(graph.ref.behavior2, mode = c("out"), weights = E(graph.ref.behavior2)$weight)
+  
+   # betweenness centrality
+   Rbehavior2.between <- igraph::betweenness(graph.ref.behavior2, directed = TRUE,
+                                    weights = E(graph.ref.behavior2)$weight)
+  
+  # eigenvector centrality
+  Rbehavior2.eigen <- eigen_centrality(graph.ref.behavior2, directed = TRUE, weights = E(graph.ref.behavior2)$weight)
+  Rbehavior2.ec <- Rbehavior2.eigen$vector
+  Rbehavior2.ec.value <- Rbehavior2.eigen$value
+  
+# group-level metrics
+  # average path length
+  Rbehavior2.apl <- mean_distance(graph.ref.behavior2) #average.path.length(graph.ref.behavior2) 
+  
+  # efficiency
+  Rbehavior2.ei <- effective_information(graph.ref.behavior2, effectiveness = FALSE)
+  Rbehavior2.eff <- Rbehavior2.ei/log2(length(bird.list))
+  
+  #Find proportion unknown relationships, a measure of sparseness
+  Rbehavior2.prunk <- EloRating::prunk(ref.behavior2.mx)
+  Rbehavior2.prunk.pu <- as.numeric(Rbehavior2.prunk[1])
+  Rbehavior2.prunk.dyads <- as.numeric(Rbehavior2.prunk[2])
+  
+  
+# dominance  
+  #Find linearity
+  lin.behavior2<- EloRating::h.index(ref.behavior2.mx, loops = 1000)
+  Rbehavior2.linearity <- lin.behavior2[3,2]
+
+  #Find steepness
+  Rbehavior2.steepness <- steepness::getStp(ref.behavior2.mx, method="Dij")
+  
+  #Triangle transitivity
+  Rbehavior2.transi <- EloRating::transitivity(ref.behavior2.mx, runs = 1000)
+  Rbehavior2.transi.Pt <- Rbehavior2.transi[1]  # proportion of transitive triads
+  Rbehavior2.transi.ttri <- Rbehavior2.transi[2]  # triangle transitivity
+  
+
+  #### POOL behavior2 hierarchy
+  Rbehavior2.hier <- cbind.data.frame( Rbehavior2.degree,
+                                  Rbehavior2.strength,
+                                  Rbehavior2.between,
+                                  Rbehavior2.ec, Rbehavior2.ec.value,
+                                  Rbehavior2.apl,
+                                  Rbehavior2.ei, Rbehavior2.eff,
+                                  Rbehavior2.linearity, 
+                                  Rbehavior2.steepness, 
+                                  Rbehavior2.prunk.pu, Rbehavior2.prunk.dyads,
+                                  Rbehavior2.transi.Pt, Rbehavior2.transi.ttri
+                                  )
+  
+  ### matrix correlation ----
+  ref2.cor.result <- mantel(ref.behavior1.mx, ref.behavior2.mx, method = "spearman") # vegan package
+  ref2.cor.matrix <- ref2.cor.result$statistic
+  
+  ## correlation individual-based metric ----
+  R.cor.strength <- cor(Rbehavior1.strength, Rbehavior2.strength,  
+               method = "spearman")
+  R.cor.between <- cor(Rbehavior1.between, Rbehavior2.between,  
+               method = "spearman")
+  R.cor.eigen <- cor(Rbehavior1.ec, Rbehavior2.ec,  
+               method = "spearman")
+  
+  # POOL ALL DATA ----
+  run.sums <- cbind.data.frame(R.basic, Rbehavior1.hier, Rbehavior2.hier, ref2.cor.matrix, R.cor.strength, R.cor.between, R.cor.eigen )
+  ref.model.summaries <- rbind(ref.model.summaries, run.sums)
+}
+
+end.time <- Sys.time()
+
+#Time to run:
+end.time - start.time
+
+#t(ref.model.summaries)
+head(ref.model.summaries)
+
+# export data
+write.csv(ref.model.summaries, "ANALYZE-summ.refmodel2.csv")
+```
+
+
+### Loop to produce aggression strategies
+
+Finding the strategies for behavior2ments (takes awhile!). 
+```{r}
+head(ref.model)
+#run.s #list of all run names
+#head(ref.model)
+#head(ANALYZE_refmodelCOR_CxD)
+
+run.s <- as.character(unique(ref.model$runID))
+n.total.dyads <- length(dyad.list$dyadID) #total number of dyads 
+
+#make empty dataframe to fill
+ref.model.strategies <- data.frame(run.code=character(), 
+                                   type=character(), 
+                                   fp.Rbehavior2=numeric(), 
+                                   strategy.Rbehavior2=numeric()
+                                  )
+
+refmodel.blurdata <- data.frame(runID=character(),
+                                type=character(),
+                                blur=numeric(),
+                                focus=numeric(),
+                                focus_ci_hi=numeric(),
+                                focus_ci_lo=numeric(),
+                                position=numeric(),
+                                position_ci_hi=numeric(),
+                                position_ci_lo=numeric()
+                                )
+#run=2
+
+#n.Obehavior2 <- sum(run.data$observed.behavior2)
+start.time <- Sys.time()
+
+for(run in seq_along(unique(ref.model$runID))){
+  run.code <- run.s[run]
+  print(run.code)
+  run.data <- subset(ref.model, runID==run.code)
+
+  ref.modelW0s <- merge(dyad.list, run.data, all.x=TRUE,
+                       by=c("actor", "subject")) #head(run.dataW0s)
+  
+  #print a check
+  check <- length(ref.modelW0s$actor)
+  print(check)
+  
+  #make runID character (not factor)
+  ref.modelW0s$runID <- as.character(ref.modelW0s$runID)
+ 
+   #fill newly-merged data with 0's where no interactions
+  ref.modelW0s[is.na(ref.modelW0s)] <- 0
+  
+
+  ### behavior2MENT
+  
+  ref.behavior2.mx <- reshape2::dcast(ref.modelW0s, actor~subject, value.var="random.behavior2") #head(ref.behavior2.mx)
+  ref.behavior2.mx[is.na(ref.behavior2.mx)] <- 0
+  ref.behavior2.mx <- matrix.please(ref.behavior2.mx)
+  
+  # Compute focus & position
+  focus.Rbehavior2 <- dom_focus(ref.behavior2.mx)
+  position.Rbehavior2 <- dom_position(ref.behavior2.mx)
+  fp.Rbehavior2 <- cbind.data.frame(focus.Rbehavior2, position.Rbehavior2)
+  colnames(fp.Rbehavior2) <- c("focus", "position")
+
+  #Compute blur models
+  blur.Rbehavior2 <- dom_make_blur_data(ref.behavior2.mx)
+
+  #compile behavior2 summary
+  runID <- rep(run.code, length(blur.Rbehavior2$blur))
+  type <- rep("behavior2", length(blur.Rbehavior2$blur))
+  blur.behavior2 <- cbind.data.frame(runID, type, blur.Rbehavior2)
+  
+  #Find strategy
+  strategy.Rbehavior2 <- dom_categorize_strategy(data=fp.Rbehavior2, blur_data=blur.Rbehavior2)
+  
+  
+  ### POOL ALL DATA
+  
+  #pool blur data
+  refmodel.blurdata <- rbind.data.frame(refmodel.blurdata, blur.behavior2)
+  
+  #pool strategy/run data
+  run.strategy.sums <- cbind.data.frame(run.code, 
+                                        focus.Rbehavior2, position.Rbehavior2, strategy.Rbehavior2
+                                        )
+  
+  ref.model.strategies <- rbind(ref.model.strategies, run.strategy.sums)
+
+  
+}
+
+end.time <- Sys.time()
+
+#Time to run:
+end.time - start.time
+
+#t(ref.model.strategies)
+head(ref.model.strategies)
+
+
+# check right refmodel used
+sum(ref.model$behavior1[ref.model$runID=="run003"])
+sum(ref.model$behavior2[ref.model$runID=="run050"])
+
+# export data
+write.csv(ref.model.strategies, file = "ANALYZE_SUMM.refmodel2.strategies.csv")	
+write.csv(refmodel.blurdata, file = "ANALYZE_SUMM.refmodel2.blurs.csv")
+```
+
+
+
+# VISUALIZING RESULTS
+
+Comparison of real vs randomized data in 4-6 plots:
+- correlation behavior1 vs behavior2ments
+Individual-based measures
+- outstrength
+- eigenvector centrality
+Hierarchy structure
+- linearity
+- steepness
+- transitivity
+Network-based measures
+- density
+- sparseness
+Aggression pattern
+- strategies
+
+
+behavior1 = allop
+behavior2 = s2s
+
+## Import data
+```{r}
+# summaries
+observed.summary <- read.csv("ANALYZE-observed.csv")
+head(observed.summary)
+observed.summary.individual<- read.csv("ANALYZE-observed.individual.csv")
+
+refmodel1.summary<- read.csv("ANALYZE-summ.refmodel1.csv") # reference model 1
+head(refmodel1.summary)
+refmodel1.summary.group <- refmodel1.summary %>% group_by(run.code) %>% slice(1) %>%
+  select(-X)
+
+refmodel2.summary<-read.csv("ANALYZE-summ.refmodel2.csv") # reference model 2
+head(refmodel2.summary)
+refmodel2.summary.group <- refmodel2.summary %>% group_by(run.code) %>% slice(1) %>%
+  select(-X)
+
+## reference model strategies
+refmodel1.strategies <- read.csv("ANALYZE_SUMM.refmodel.strategies.csv") 
+str(refmodel1.strategies)
+refmodel2.strategies<- read.csv("ANALYZE_SUMM.refmodel2.strategies.csv") 
+
+```
+
+## Distribution plots
+
+set color and other parameters
+```{r}
+# set color and other parameters
+col.teal <- "#1f78b4" #use for behavior1
+col.ltgn <- "#b2df8a" #use for sparse behavior2
+col.dkgn <- "#33a02c" #use for regular behavior2
+col.lttl <- "#a6cee3"
+col.dkrd <- "#ca0020"
+col.prpl <- "#7b3294"
+col.dkbl <- "#0571b0"
+col.ltbl <- "#92c5de"  
+col.red  <- "#ca0020"
+col.orng <- "#fdae61"
+
+#set color by behavior
+behavior1 <- col.orng  # was col.teal 
+behavior2 <- col.dkbl  # was  col.dkgn
+
+obs.vals <- col.red
+ref1.behavior1 <- col.orng
+ref1.behavior2 <- col.dkbl
+
+# set color by ref model
+ref1 <- col.dkbl
+ref2 <- col.ltbl
+
+#set plot color by plot element
+bean.alpha <- 0.4
+
+
+beaninlines <- alpha("black", 0.2)
+beanoutlines<- alpha("black", 0.2)
+beanavgines <- "purple"
+beanborder <- alpha("black", 0.6)
+
+pooled.alpha <- 0.7
+linewidth <- 1
+xlabels <- c("behavior1 \nRef. model 1", "behavior2 \nRef. model 1", "behavior2 \nRef. model 2")
+obsval.pch <- 5
+obsval.size <- 2.5
+obsval.hlt.pch <- 8  # asterisk  --> significant result
+obsval.hlt.pch.plus <- 16 # plus ---> non-significant result
+obsval.hlt.cex <- 1
+ylim<-c(0,1)
+
+```
+
+
+
+### correlation (not provided in the manuscript)
+```{r}
+#, corr.hist, cache=FALSE, fig.height=5, fig.width=4.5}
+par(mfrow=c(2,1))
+
+# matrix correlation: histogram
+hist(refmodel1.summary.group$ref1.cor.matrix,
+      main="",
+     xlab="",
+      las=1,
+      col = ref1,
+     xlim=c(0.0,1.0),
+     breaks = 10)
+
+abline(v=observed.summary$obs.cor.matrix, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of total 
+
+hist(refmodel2.summary.group$ref2.cor.matrix,
+      main="",
+     xlab="Spearman's rho",
+      las=1,
+      col = ref2,
+     xlim=c(0.0, 1.0),
+     breaks = 10)
+
+abline(v=observed.summary$obs.cor.matrix, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of total 
+
+# save plot
+#dev.print(pdf, file="plot.correlation.hist.pdf")
+```
+
+
+
+##2. individual-based measures
+scatterplots + correlations in one using Base plot
+```{r}
+#{r, individual.beans.base, cache=FALSE, fig.height=6, fig.width=7.5}
+
+bg_refmodel1 <- select(refmodel1.summary, -run.code)
+bg_refmodel2 <- select(refmodel2.summary, -run.code)
+
+par(mfrow=c(3,3))
+
+## ref model 1
+# out-strength
+plot(bg_refmodel1$Rbehavior2.strength, bg_refmodel1$Rbehavior1.strength, 
+     xlab ="", ylab = "behavior1", main = "out strength", 
+     col = alpha(ref1, bean.alpha), pch = 19
+     )
+points(observed.summary.individual$Obbehavior2.strength,observed.summary.individual$Obbehavior1.strength, col=alpha(obs.vals, pooled.alpha), pch = 19)
+
+# betweenness
+plot(bg_refmodel1$Rbehavior2.between, bg_refmodel1$Rbehavior1.between, 
+     xlab ="", ylab = "", main = "betweenness", 
+     col = alpha(ref1, bean.alpha), pch = 19,
+     xlim = c(0,150), ylim = c(0,150))
+points(observed.summary.individual$Obbehavior2.between,observed.summary.individual$Obbehavior1.between, col=alpha(obs.vals, pooled.alpha), pch = 19)
+
+# eigenvector 
+plot(bg_refmodel1$Rbehavior2.ec, bg_refmodel1$Rbehavior1.ec, 
+     xlab ="", ylab = "", main = "eigenvector", 
+     col = alpha(ref1, bean.alpha), pch = 19,
+     xlim = c(0,1), ylim = c(0,1))
+points(observed.summary.individual$Obbehavior2.ec,observed.summary.individual$Obbehavior1.ec, col=alpha(obs.vals, pooled.alpha), pch = 19)
+
+## ref model 2
+# out strength
+plot(bg_refmodel2$Rbehavior2.strength, bg_refmodel2$Rbehavior1.strength, 
+     xlab ="behavior2", ylab = "behavior1", main = "", 
+     col = alpha(ref2, bean.alpha), pch = 19)
+points(observed.summary.individual$Obbehavior2.strength,observed.summary.individual$Obbehavior1.strength, col=alpha(obs.vals, pooled.alpha), pch = 19)
+
+# betweenness
+plot(bg_refmodel2$Rbehavior2.between, bg_refmodel2$Rbehavior1.between, 
+     xlab ="behavior2", ylab = "", main = "", 
+     col = alpha(ref2, bean.alpha), pch = 19,
+     xlim = c(0,150), ylim = c(0,150))
+points(observed.summary.individual$Obbehavior2.between,observed.summary.individual$Obbehavior1.between, col=alpha(obs.vals, pooled.alpha), pch = 19)
+
+# eigenvector 
+plot(bg_refmodel2$Rbehavior2.ec, bg_refmodel2$Rbehavior1.ec, 
+     xlab ="behavior2", ylab = "", main = "", 
+     col = alpha(ref2, bean.alpha), pch = 19,
+     xlim = c(0,1), ylim = c(0,1))
+points(observed.summary.individual$Obbehavior2.ec,observed.summary.individual$Obbehavior1.ec, col=alpha(obs.vals, pooled.alpha), pch = 19)
+
+## Distribution plots of correlation strength ref model 1 and ref model 2 + observed value
+
+# out strength
+beanplot(refmodel1.summary.group$R.cor.strength, refmodel2.summary.group$R.cor.strength, 
+        # main="out-strength", 
+         ylab="Spearman's rho", log = "",
+         xlab = "",  ylim=c(-0.2, 1.0),
+         #add custom bean colorsbehavior1
+           col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 2
+                    ),
+        
+         border = beanborder, 
+         las=1, 
+         ll = 0.01, beanlinewd = 2, maxstripline = 0.1, # maximum length of a beanline
+         cutmin=0, cutmax=1,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+abline(h=observed.summary$obs.cor.strength, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of total 
+
+text(1, 0.4, "NS")
+  text(2, 0.4, "NS")
+
+# betweenness centrality
+beanplot(refmodel1.summary.group$R.cor.between, refmodel2.summary.group$R.cor.between, 
+         #main="betweenness centrality", 
+         ylab="", log = "",
+         xlab = "",  ylim=c(-0.2, 1.0),
+         #add custom bean colorsbehavior1
+           col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 2
+                    ),
+        
+         border = beanborder, 
+         las=1, 
+         ll = 0.01, beanlinewd = 2, maxstripline = 0.1, # maximum length of a beanline
+         cutmin=0, cutmax=1,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+abline(h=observed.summary$obs.cor.between, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of total   
+
+text(1, 0.95, "NS")
+  text(2, 0.95, "*")
+
+
+# eigenvector centrality
+beanplot(refmodel1.summary.group$R.cor.eigen, refmodel2.summary.group$R.cor.eigen, 
+         #main="eigenvector centrality", 
+         ylab="", log = "",
+         xlab = "",  ylim=c(-0.2, 1.0),
+         #add custom bean colorsbehavior1
+           col = list(c(alpha(ref1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 2
+                    )  
+         ,
+         border = beanborder,  las=1, 
+         ll = 0.01, beanlinewd = 2, maxstripline = 0.2, # maximum length of a beanline
+         cutmin=0, cutmax=1,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+abline(h=observed.summary$obs.cor.eigen, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of total  
+
+  text(1, 0.95, "NS")
+  text(2, 0.95, "NS")
+
+# save plot
+#dev.print(pdf, file="plot.indvidual.pdf")
+```
+
+
+Are observed values significantly different from random values in reference models?
+
+find proportion of random values less than the observed values, you can use this as a kind of p value. p should be >0.975 for two-tailed test, >0.95 for one-tailed test for something significantly different from the random values in the reference model
+  
+```{r}
+# p-values 
+# out-strength
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.strength<observed.summary$obs.cor.strength, ])/nrow(refmodel1.summary.group) 
+p.ref1.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.strength
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.strength<observed.summary$obs.cor.strength, ])/nrow(refmodel2.summary.group) 
+p.ref2.strength<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.strength
+
+# betweenness
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.between<observed.summary$obs.cor.between, ])/nrow(refmodel1.summary.group) 
+p.ref1.between <- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.between
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.between<observed.summary$obs.cor.between, ])/nrow(refmodel2.summary.group) 
+p.ref2.between<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.between
+
+# eigenvector
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$R.cor.eigen<observed.summary$obs.cor.eigen, ])/nrow(refmodel1.summary.group) 
+p.ref1.ec <- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.ec
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$R.cor.eigen<observed.summary$obs.cor.eigen, ])/nrow(refmodel2.summary.group) 
+p.ref2.ec<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.ec 
+```
+
+
+Group-based metrics
+
+## 3. network-based measures
+
+```{r}
+#{r, network.beans, cache=FALSE, fig.height=4, fig.width=5.75}
+par(mfrow=c(1,2))
+
+# average path length
+beanplot(refmodel1.summary.group$Rbehavior1.apl, refmodel1.summary.group$Rbehavior2.apl, refmodel2.summary.group$Rbehavior2.apl,  
+         main="Average path length", 
+         ylab="", log="",
+         #ylim = c(1,3), 
+         xlab = "", names = xlabels, 
+         
+         #add custom bean colorsbehavior1
+         col = list(c(alpha(ref1.behavior1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.behavior2, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+                    ),          
+
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
+         maxstripline = 0.1, # maximum length of a beanline
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+  # add points for observed values
+
+  points(1,observed.summary$Obbehavior1.apl, col= behavior1 , pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  points(2,observed.summary$Obbehavior2.apl, col= behavior2, pch=obsval.pch, cex=obsval.size, lwd=2) # behavior2ments
+  points(3,observed.summary$Obbehavior1.apl, col= behavior1 , pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  
+  points(1,observed.summary$Obbehavior1.apl, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # behavior1
+  points(2,observed.summary$Obbehavior2.apl, col= obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # behavior2ments
+  points(3,observed.summary$Obbehavior1.apl, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # behavior1
+  
+  text(1, 1.23, "NS")
+  text(2, 1.25, "*")
+  text(3, 1.25, "NS")
+  
+  abline(h=observed.summary$Obtotal.apl, col=alpha(obs.vals, pooled.alpha), lwd = linewidth) # add line estimate of total   
+
+  
+  
+# efficiency
+beanplot(refmodel1.summary.group$Rbehavior1.eff, refmodel1.summary.group$Rbehavior2.eff,refmodel2.summary.group$Rbehavior2.eff,
+         main ="Efficiency", 
+         ylab="", las=1, log="",
+         #ylim= c(0.2,0.7),
+        xlab = "", names = xlabels, 
+        
+         #add custom bean colorsbehavior1
+         col = list(c(alpha(ref1.behavior1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.behavior2, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+                    ),         
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
+        maxstripline = 0.1, # maximum length of a beanline
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+  # add points for observed values
+
+  points(1,observed.summary$Obbehavior1.eff, col= behavior1 , pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  points(2,observed.summary$Obbehavior2.eff, col= behavior2, pch=obsval.pch, cex=obsval.size, lwd=2) # behavior2ments
+  points(3,observed.summary$Obbehavior1.eff, col= behavior1 , pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  
+  points(1,observed.summary$Obbehavior1.eff, col= obs.vals , pch=obsval.hlt.pch, cex=obsval.hlt.cex) # behavior1
+  points(2,observed.summary$Obbehavior2.eff, col= obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # behavior2ments
+  points(3,observed.summary$Obbehavior1.eff, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # behavior1
+  
+  text(1, 0.65, "*")
+  text(2, 0.65, "*")
+  text(3, 0.65, "NS")
+  
+  abline(h=observed.summary$Obtotal.eff, col=alpha(obs.vals, pooled.alpha), lwd = linewidth) # add line estimate of total   
+  
+# save plot
+#dev.print(pdf, file="plot.network.beans.pdf")  
+```
+Are observed values significantly different from random values in reference models?
+
+find proportion of random values less than the observed values, you can use this as a kind of p value. p should be >0.975 for two-tailed test, >0.95 for one-tailed test for something significantly different from the random values in the reference model
+  
+```{r}
+# p-values network measures
+
+# average path length
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior1.apl<observed.summary$Obbehavior1.apl, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior1.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.behavior1.apl
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior2.apl<observed.summary$Obbehavior2.apl, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior2.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.behavior2.apl
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rbehavior2.apl<observed.summary$Obbehavior1.apl, ])/nrow(refmodel2.summary.group) 
+p.ref2.apl<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref2.apl
+
+
+
+# effectiveness
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior1.eff<observed.summary$Obbehavior1.eff, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior1.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.behavior1.eff
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior2.eff<observed.summary$Obbehavior2.eff, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior2.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.behavior2.eff
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rbehavior2.eff<observed.summary$Obbehavior1.eff, ])/nrow(refmodel2.summary.group) 
+p.ref2.eff<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.eff
+
+
+```
+```{r}
+# p-values network measures: pooled
+
+# average path length
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior1.apl<observed.summary$Obtotal.apl, ])/nrow(refmodel1.summary.group) 
+p.ref1.apl.behavior1.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.apl.behavior1.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior2.eff<observed.summary$Obtotal.apl, ])/nrow(refmodel1.summary.group) 
+p.ref1.apl.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.apl.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rbehavior2.eff<observed.summary$Obtotal.apl, ])/nrow(refmodel2.summary.group) 
+p.ref2.apl.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.apl.pool
+
+
+# effectiveness
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior1.eff<observed.summary$Obtotal.eff, ])/nrow(refmodel1.summary.group) 
+p.ref1.eff.behavior1.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.eff.behavior1.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior2.eff<observed.summary$Obtotal.eff, ])/nrow(refmodel1.summary.group) 
+p.ref1.eff.behavior2.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.eff.behavior2.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rbehavior2.eff<observed.summary$Obtotal.eff, ])/nrow(refmodel2.summary.group) 
+p.ref2.eff.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.eff.pool
+
+
+```
+
+
+## 4. Hierarchy structure plots combined
+The distribution of randomized behavior1 and behavior2ments (ref model 1) and sparse sampled behavior2ments (ref model 2) with observed values
+
+NB! changed * to a dot sign if result wasn't significant but I don't think it is well visible. 
+```{r}
+#{r, hierarchy.beans, cache=FALSE, fig.height=4, fig.width=8.5}
+par(mfrow=c(1,3))
+
+
+# linearity
+beanplot(refmodel1.summary.group$Rbehavior1.linearity, refmodel1.summary.group$Rbehavior2.linearity, refmodel2.summary.group$Rbehavior2.linearity, 
+         main="Linearity", 
+         ylab="h index", log = "", ylim = ylim,
+         xlab = "", names = xlabels, 
+         
+         #add custom bean colorsbehavior1
+         col = list(c(alpha(ref1.behavior1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.behavior2, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+                    ), 
+        
+         border = beanborder,  las=1, 
+         ll = 0.1, beanlinewd = 2,
+         cutmin=0, cutmax=1,
+         maxstripline = 0.1, # maximum length of a beanline
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+  # add points for observed values
+  points(1,observed.summary$Obbehavior1.linearity, col= behavior1, pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  points(2,observed.summary$Obbehavior2.linearity, col= behavior2, pch=obsval.pch, cex=obsval.size, lwd=2) # behavior2ments
+  points(3,observed.summary$Obbehavior1.linearity, col= behavior1 , pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+
+  points(1,observed.summary$Obbehavior1.linearity, col= obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # behavior1
+  points(2,observed.summary$Obbehavior2.linearity, col= obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # behavior2ments
+  points(3,observed.summary$Obbehavior1.linearity, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # behavior1
+
+  abline(h=observed.summary$Obtotal.linearity, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of total   
+
+  text(1, 0.6, "*")
+  text(2, 0.6, "*")
+  text(3, 0.6, "NS")
+
+# steepness
+beanplot(refmodel1.summary.group$Rbehavior1.steepness, refmodel1.summary.group$Rbehavior2.steepness,refmodel2.summary.group$Rbehavior2.steepness,
+         main="Steepness", 
+         ylab="Dij", las=1, log = "",
+         ylim = ylim,
+         xlab = "", names = xlabels, 
+        
+         #add custom bean colorsbehavior1
+         col = list(c(alpha(ref1.behavior1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.behavior2, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+                    ),         
+         
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
+         cutmin=0, cutmax=1, #so distributions not plotted past 0-1 range
+         maxstripline = 0.1, # maximum length of a beanline
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+  # add points for observed values
+
+  points(1,observed.summary$Obbehavior1.steepness, col=behavior1, pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  points(2,observed.summary$Obbehavior2.steepness, col=behavior2, pch=obsval.pch, cex=obsval.size, lwd=2) # behavior2ments
+  points(3,observed.summary$Obbehavior1.steepness, col= behavior1 , pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  
+  points(1,observed.summary$Obbehavior1.steepness, col=obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # behavior1
+  points(2,observed.summary$Obbehavior2.steepness, col=obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # behavior2ments
+  points(3,observed.summary$Obbehavior1.steepness, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # behavior1
+  
+  abline(h=observed.summary$Obtotal.steepness, col=alpha(obs.vals, pooled.alpha), lwd = linewidth)  # add line estimate of total   
+
+   text(1, 0.6, "*")
+  text(2, 0.6, "*")
+  text(3, 0.6, "NS")
+
+# transitivity
+beanplot(refmodel1.summary.group$Rbehavior1.transi.ttri, refmodel1.summary.group$Rbehavior2.transi.ttri,
+         refmodel2.summary.group$Rbehavior2.transi.ttri,
+         main ="Transitivity", 
+         ylab="Triangle motifs",
+         ylim= ylim,
+         xlab = "", names = xlabels, 
+         
+         #add custom bean colorsbehavior1
+         col = list(c(alpha(ref1.behavior1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.behavior2, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+                    ), 
+         
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
+         cutmin=0, cutmax=1,
+         maxstripline = 0.1, # maximum length of a beanline
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+  # add points for observed values
+
+  points(1,observed.summary$Obbehavior1.transi.ttri, col= behavior1 , pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  points(2,observed.summary$Obbehavior2.transi.ttri, col= behavior2, pch=obsval.pch, cex=obsval.size, lwd=2) # behavior2ments
+  points(3,observed.summary$Obbehavior1.transi.ttri, col= behavior1 , pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  
+  points(1,observed.summary$Obbehavior1.transi.ttri, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # behavior1
+  points(2,observed.summary$Obbehavior2.transi.ttri, col= obs.vals, pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # behavior2ments
+  points(3,observed.summary$Obbehavior1.transi.ttri, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # behavior1
+  
+  abline(h=observed.summary$Obtotal.transi.ttri, col=alpha(obs.vals, pooled.alpha), lwd = linewidth) # add line estimate of total   
+
+  text(1, 0.1, "NS")
+  text(2, 0.1, "NS")
+  text(3, 0.1, "NS")
+  
+# save plot
+#dev.print(pdf, file="plot.hierarchy.beans.pdf")
+  
+
+```
+Are observed values significantly different from random values in reference models?
+
+find proportion of random values less than the observed values, you can use this as a kind of p value. p should be >0.975 for two-tailed test, >0.95 for one-tailed test for something significantly different from the random values in the reference model
+  
+```{r}
+# p-values dominance measures
+
+# linearity
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior1.linearity<observed.summary$Obbehavior1.linearity, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior1.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.behavior1.lin
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior2.linearity<observed.summary$Obbehavior2.linearity, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior2.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.behavior2.lin
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rbehavior2.linearity<observed.summary$Obbehavior1.linearity, ])/nrow(refmodel2.summary.group) 
+p.ref2.lin<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref2.lin
+
+# pooled
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior1.linearity<observed.summary$Obtotal.linearity, ])/nrow(refmodel1.summary.group) 
+p.ref1.lin.behavior1.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.lin.behavior1.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior2.linearity<observed.summary$Obtotal.linearity, ])/nrow(refmodel1.summary.group) 
+p.ref1.lin.behavior2.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.lin.behavior2.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rbehavior2.linearity<observed.summary$Obtotal.linearity, ])/nrow(refmodel2.summary.group) 
+p.ref2.lin.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.lin.pool
+
+
+```
+  
+```{r}
+
+# steepness
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior1.steepness<observed.summary$Obbehavior1.steepness, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior1.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.behavior1.steep
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior2.steepness<observed.summary$Obbehavior2.steepness, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior2.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.behavior2.steep
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rbehavior2.steepness<observed.summary$Obbehavior1.steepness, ])/nrow(refmodel2.summary.group) 
+p.ref2.steep<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.steep
+
+# pooled
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior1.steepness<observed.summary$Obtotal.steepness, ])/nrow(refmodel1.summary.group) 
+p.ref1.steep.behavior1.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.steep.behavior1.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior2.steepness<observed.summary$Obtotal.steepness, ])/nrow(refmodel1.summary.group) 
+p.ref1.steep.behavior2.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.steep.behavior2.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rbehavior2.steepness<observed.summary$Obtotal.steepness, ])/nrow(refmodel2.summary.group) 
+p.ref2.steep.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.steep.pool
+
+
+```
+
+```{r}
+# transitivity
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior1.transi.ttri<observed.summary$Obbehavior1.transi.ttri, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior1.trans<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.behavior1.trans
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior2.transi.ttri<observed.summary$Obbehavior2.transi.ttri, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior2.trans <- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.behavior2.trans 
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rbehavior2.transi.ttri<observed.summary$Obbehavior1.transi.ttri, ])/nrow(refmodel1.summary.group) 
+p.ref2.trans<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.trans
+
+# pooled
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior1.transi.ttri<observed.summary$Obtotal.transi.ttri, ])/nrow(refmodel1.summary.group) 
+p.ref1.trans.behavior1.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.trans.behavior1.pool
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior2.transi.ttri<observed.summary$Obtotal.transi.ttri, ])/nrow(refmodel1.summary.group) 
+p.ref1.trans.behavior2.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.trans.behavior2.pool
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rbehavior2.transi.ttri<observed.summary$Obtotal.transi.ttri, ])/nrow(refmodel2.summary.group) 
+p.ref2.trans.pool<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.trans.pool
+
+```
+
+  
+  
+
+## 5. Aggression strategies
+summary of number of runs per strategy and plot those with observed strategie in caption
+
+```{r, network.beans, cache=FALSE, fig.height=3, fig.width=5.75}
+# observed strategies
+observed.summary$strategy.Obbehavior1 # "pure bully"
+observed.summary$strategy.Obbehavior2  # "pure bully"
+observed.summary$Obstrategy.total # "pure bully"
+
+# strategies per random run
+strategies.Rbehavior1<-group_by(refmodel1.strategies, strategy.Rbehavior1) %>%
+  summarise(n=n()) %>% 
+  mutate(prop=n/100, behavior="behavior1") %>%
+  rename(strategy=strategy.Rbehavior1) %>%
+  add_row(strategy="close.competitor",n= 0,prop=0, behavior="behavior1") %>%
+   add_row(strategy="pure.undefined",n= 0,prop=0,  behavior="behavior1")
+strategies.Rbehavior2<-group_by(refmodel1.strategies, strategy.Rbehavior2) %>%
+  summarise(n=n()) %>% 
+  mutate(prop=n/100, behavior="behavior2") %>%
+  rename(strategy=strategy.Rbehavior2) %>%
+  add_row(strategy="close.competitor",n= 0,prop=0,  behavior="behavior2") %>%
+   add_row(strategy="pure.undefined",n= 0,prop=0,  behavior="behavior2")
+strategies.refmodel2<-group_by(refmodel2.strategies, strategy.Rbehavior2) %>%
+  summarise(n=n()) %>% 
+  mutate(prop=n/100, behavior="sparse behavior2") %>%
+  rename(strategy=strategy.Rbehavior2) %>%
+  add_row(strategy="close.competitor",n= 0,prop=0,  behavior="sparse behavior2")
+# 51 % pure bully, 47% downward heuristic, and 2% undefined
+strategies<-rbind(strategies.Rbehavior1, strategies.Rbehavior2, strategies.refmodel2)
+
+strategies$strategy<-factor(strategies$strategy, 
+                            levels =c("downward.heuristic","close.competitor","pure.bully", "pure.undefined") , 
+                            labels = c("Downward heuristic", "Close competitors", "Bullying", "Undefined") )
+
+strategies$behavior<-factor(strategies$behavior, 
+                            levels = c("behavior1", "behavior2", "sparse behavior2"),
+                            labels = c("behavior1 \nRef. model 1", "behavior2 \nRef. model 1", "behavior2 \nRef. model 2"))
+
+ggplot(strategies, aes(x=behavior, y=n, fill=strategy)) +
+  geom_col(aes(group= strategy), colour= beanborder) +
+  theme_classic() +
+  labs(y="percent runs with strategy types", x="", fill= "strategies in reference runs") +
+  theme(plot.caption=element_text(hjust = 0) ) +
+  scale_fill_manual(values=c(alpha("lightgrey", 0.4),alpha("red", 0.4), alpha("blue", 0.4), alpha("black", 0.6))) 
+
+#caption = "observed behavior1 = bullying \nobserved behavior2 = bullying \nobserved pooled = bullying"
+
+# save plot
+dev.print(pdf, file="plot.strategies.pdf")
+
+```
+
+
+## supplemental info
+```{r}
+#{r, network.beans, cache=FALSE, fig.height=4, fig.width=5.75}
+par(mfrow=c(1,2))
+
+# density
+beanplot(refmodel1.summary.group$Rbehavior1.density, refmodel1.summary.group$Rbehavior2.density, refmodel2.summary.group$Rbehavior2.density,  
+         main="Density", 
+         ylab="Proportion agonistic relationships", 
+         ylim = ylim,
+         xlab = "", names = xlabels, 
+         
+         #add custom bean colorsbehavior1
+         col = list(c(alpha(ref1.behavior1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.behavior2, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+                    ),          
+
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+  # add points for observed values
+
+  points(1,observed.summary$Obbehavior1.density, col= behavior1 , pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  points(2,observed.summary$Obbehavior2.density, col= behavior2, pch=obsval.pch, cex=obsval.size, lwd=2) # behavior2ments
+  points(3,observed.summary$Obbehavior1.density, col= behavior1 , pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  
+  points(1,observed.summary$Obbehavior1.density, col= obs.vals , pch=obsval.hlt.pch, cex=obsval.hlt.cex) # behavior1
+  points(2,observed.summary$Obbehavior2.density, col= obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # behavior2ments
+  points(3,observed.summary$Obbehavior1.density, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # behavior1
+  
+  abline(h=observed.summary$Obtotal.density, col=alpha(obs.vals, pooled.alpha), lwd = linewidth) # add line estimate of total   
+
+  text(1, 0.9, "*")
+  text(2, 0.9, "*")
+  text(3, 0.9, "NS")
+  
+# sparseness
+beanplot(refmodel1.summary.group$Rbehavior1.prunk.pu, refmodel1.summary.group$Rbehavior2.prunk.pu,refmodel2.summary.group$Rbehavior2.prunk.pu,
+         main ="Sparseness", 
+         ylab="Proportion non-interacting dyads", las=1, 
+         ylim= ylim,
+        xlab = "", names = xlabels, 
+        
+         #add custom bean colorsbehavior1
+         col = list(c(alpha(ref1.behavior1, bean.alpha), beaninlines, beaninlines, "black"), #bean 1 
+                    c(alpha(ref1.behavior2, bean.alpha), beaninlines, beaninlines, "black"), #bean 2
+                    c(alpha(ref2, bean.alpha), beaninlines, beaninlines, "black") #bean 3
+                    ),         
+         border = beanborder, las=1, ll = 0.1, beanlinewd = 2,
+         what = c(FALSE, TRUE, TRUE, TRUE)) # remove overall line
+
+  # add points for observed values
+
+  points(1,observed.summary$Obbehavior1.prunk.pu, col= behavior1 , pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  points(2,observed.summary$Obbehavior2.prunk.pu, col= behavior2, pch=obsval.pch, cex=obsval.size, lwd=2) # behavior2ments
+  points(3,observed.summary$Obbehavior1.prunk.pu, col= behavior1 , pch=obsval.pch, cex=obsval.size, lwd=2) # behavior1
+  
+  points(1,observed.summary$Obbehavior1.prunk.pu, col= obs.vals , pch=obsval.hlt.pch, cex=obsval.hlt.cex) # behavior1
+  points(2,observed.summary$Obbehavior2.prunk.pu, col= obs.vals, pch=obsval.hlt.pch, cex=obsval.hlt.cex) # behavior2ments
+  points(3,observed.summary$Obbehavior1.prunk.pu, col= obs.vals , pch=obsval.hlt.pch.plus, cex=obsval.hlt.cex) # behavior1
+  
+  abline(h=observed.summary$Obtotal.prunk.pu, col=alpha(obs.vals, pooled.alpha), lwd = linewidth) # add line estimate of total   
+  
+   text(1, 0.9, "*")
+  text(2, 0.9, "*")
+  text(3, 0.9, "NS")
+
+# save plot
+#dev.print(pdf, file="plot.network.SM.pdf")
+```
+Are observed values significantly different from random values in reference models?
+
+find proportion of random values less than the observed values, you can use this as a kind of p value. p should be >0.975 for two-tailed test, >0.95 for one-tailed test for something significantly different from the random values in the reference model
+  
+```{r}
+# p-values network
+
+# density
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior1.density<observed.summary$Obbehavior1.density, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior1.den<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.behavior1.den
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior2.density<observed.summary$Obbehavior2.density, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior2.den<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref1.behavior2.den
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rbehavior2.density<observed.summary$Obbehavior1.density, ])/nrow(refmodel2.summary.group) 
+p.ref2.den<- ifelse(prop.val>0.5, 1-prop.val, prop.val)
+p.ref2.den
+
+# sparseness
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior1.prunk.pu<observed.summary$Obbehavior1.prunk.pu, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior1.sparse<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.behavior1.sparse
+
+prop.val <- nrow(refmodel1.summary.group[refmodel1.summary.group$Rbehavior2.prunk.pu<observed.summary$Obbehavior2.prunk.pu, ])/nrow(refmodel1.summary.group) 
+p.ref1.behavior2.sparse<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref1.behavior2.sparse
+
+prop.val <- nrow(refmodel2.summary.group[refmodel2.summary.group$Rbehavior2.prunk.pu<observed.summary$Obbehavior1.prunk.pu, ])/nrow(refmodel2.summary.group) 
+p.ref2.sparse<- ifelse(prop.val>0.5, 1-prop.val, prop.val) 
+p.ref2.sparse
+```
+
+# sessioninfo
+```{r}
+sessionInfo()
+```
